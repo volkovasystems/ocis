@@ -229,7 +229,7 @@ var x = {
 	comment: [],
 	testcase: "function-test.cloneEntity",
 	testresult: []
-}
+};
 
 
 

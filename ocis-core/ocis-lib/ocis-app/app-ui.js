@@ -3,7 +3,7 @@ function Ui( configuration ){
 
 	//Meta-entity configurations
 	this.uiID = configuration.ID
-		|| ( configuration.meta || {} ).ID
+		|| ( configuration.meta || {} ).ID;
 
 	this.name = configuration.name 
 		|| ( configuration.meta || {} ).name;

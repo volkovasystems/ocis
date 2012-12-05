@@ -978,7 +978,7 @@ function indexOf( entity, search, origin, index, startat, callback ){
                             if( ( startat !== null || startat!== undefined ) 
                                 && typeof startat == "number" )
                             {
-                                var tokens = entity.split( search );
+                                //var tokens = entity.split( search );
                                 
                                 //var  = entity.indexOf( tokens[ startat ] ) - 1;
                                 
@@ -1529,8 +1529,8 @@ function containsEntity( entity, search, level, callback ){
 		function( cloned ){
 			constructLevels( cloned, true,
 			function( levels ){
-				var indexrange;
-				var valuerange;
+				//var indexrange;
+				//var valuerange;
 				if( search instanceof Array ){
 
 				}
