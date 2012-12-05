@@ -1,0 +1,28 @@
+//this is a comment
+//user blend json format
+{
+	usrid:"#usr<username><UUID>",
+	usr:"username",
+	blnds:{
+		"colorblendname":{
+			blndid:"format: #blnd<blend name><UUID>"
+			clrs:[
+				{
+					clrid:"format: #clr<rgb hex value><UUID>"
+					ops:[
+						{
+							type:"BLND/CMPR",
+							subtype:"fltr_type/cmpr_type",	
+							blndids:[]
+						},
+						...
+					],
+				},
+				...
+			],
+			block:false,
+			shrs:[]
+		},
+		...
+	}
+}

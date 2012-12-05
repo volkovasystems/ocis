@@ -1,0 +1,7 @@
+//this is a comment
+//filter json format
+{
+	fltrid:"format: #fltr<filter name><UUID>",
+	fltr:{
+	}
+}

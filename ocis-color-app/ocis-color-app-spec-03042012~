@@ -1,0 +1,239 @@
+App Name: OCIS Color App
+App ID: #ocis-color-app
+Spec ID: #ocis-color-app:1:1-03042012
+Resource URL: http://ge.tt/9YWPWXE/v/0?c
+
+Version Changes:
+1.1: 
+- change blndid to blndids in 2. Color blender
+- provide deadline matrixs
+- provide overview
+- corrected some grammars
+
+Developer:
+	Rommel Reyes
+	Ronald Erosa
+
+Task ID:
+#task-opts-id-rommelreyes-colorapp
+#task-opts-id-ronalderosa-colorapp
+
+Language:
+*JavaScript, HTML, CSS, JSON
+
+Frameworks:
+*JQuery and NodeJS (you can provide additional frameworks)
+
+Database:
+*MongoDB
+
+Designer's Comments:
+"Please make your code 
+understandable, 
+abstractive, 
+flexible, 
+rationalized,
+modularized,
+and optimized.
+I will not accept shits. :)"
+
+Overview:
+OCIS Color App is a portable, standalone, and extensible color chooser application.
+Users can create blends, apply this blends to their online projects via cloud.
+Other users can evaluate their blends, and if something is not right
+they can just refer to their saved blends, provide changes and apply changes.
+Then the next time their project is opened, changes will be applied.
+
+This will also provide users to make their browsers an IDE, imagine your project
+as the workspace and these apps as property docks :)
+
+Users can also provide extensibility if other users don't like their blends.
+They can share their blends, let other users change it, then let the original
+user provide permissions to change their color themes. The good part is, it will only
+render on the other user's local namespace. The original project color theme is not changed.
+In this way, other users can express their originality. Freedom of expression.
+
+This could also help color blinded people. For humanity! :D
+
+To be continued...
+
+Specifications (version 1.0):
+
+	Pre-Specification (version 1.0):
+	1. Create a client application (HTML, CSS, JS) and a server application (NodeJS).
+		- the server application is in the form of web service.
+		  host: localhost
+		  port: 12345
+		  reques type: POST
+	2. The client application must request to the server application using the following endpoints:
+		/colors 
+			- get all the colors in the form of json array
+			- (colors_json format)
+		/filters 
+			- get all the filters in the form of json array
+			- (fltrs_json format)
+		/<username>/blends
+			- get all the blends of the specified user in the form of json
+			- (usr-colors_json format)
+		/evaporate
+			- save users blends 
+			- input: blends in the form of json 
+			- (usr-colors_json format)
+
+
+1. Multiple view color chooser. (ACTIVE)
+Feature ID: #ocis-color-app-colorwheel
+    - different UI for color chooser.
+TODO:
+    - there should be inputs for every color formats.
+      this is developers' specification.
+    - there should be output in the form of user interface component 
+      for every color model representation.
+      this is developers' specification.
+
+2. Color blender. (ACTIVE)
+Feature ID: #ocis-color-app-colorshake
+    - blends color, compare colors and apply color filters.
+TODO:
+      color filters are developers' specification.
+         - developers should assign filter types.
+         - filter types should have a well formed json structure.
+           dbname: ociscolorappdb
+           collection name: fltrtypes
+           format: <developers' specification> + http://ge.tt/9YWPWXE/v/2?c
+         - applying color filters to two or more colors is blending.
+      compare colors are either GT, LT, NR or NT.
+         - greater than GT.
+           gets or generate colors greater than the input color.
+         - less than LT.
+           gets or generate colors less than the input color.
+         - near to NR.
+           gets or generate colors near the input color 
+           with specified threshold limit, gap limit, and count limit.
+         - not NT.
+           gets or generate colors not equal to the input color 
+           with specified threshold limit, gap limit and count limit.
+         - gap limit. 
+           value between next color.
+           value is in rgb hex.
+         - threshold limit.
+           value on both sides of the visible color spectrum where the color is limited.
+           value is in rgb hex.
+         - count limit.
+           total number of colors generated.
+    - for every operation type (type) there must be a sub operation type (subtype)
+      if the filter defined that it does not need other colors then blndids is null in ops
+      if the user just pick a color and store it, ops should be null.
+    - all colors are blends.
+    - blends are defined by the users.
+    - filters are defined by the developers.
+    - colors should be separated and generated before the user.
+      dbname: ociscolorappdb
+      collection name: colors
+      format: http://ge.tt/9YWPWXE/v/1?c
+    - different user interface for color blenders.
+    - blends are applied before displaying on the user.
+
+3. Store user's blended/compared/chosen colors. (ACTIVE)
+Feature ID: #ocis-color-app-colorcrud
+    - application must have a CrUD operation.
+TODO:
+    - just create a database and stores the chosen/blended/compared colors of users.
+      database: mongodb 
+      dbname: ociscolorappdb
+      every operation should have a type and should be specified on type field.
+         - BLND
+           for blended colors
+         - CMPR
+           for compared colors
+         - null type means chosen colors of users and no blending or comparing applied.
+    - users can retrieve it again by specifying their username.
+      users can save it by specifying their username.
+      users must also specify the blend name before saving.
+    - no login or user account required.
+      but provide captcha so that we will not be spammed.
+    - save colors in different formats (use JSON).
+      dbname: ociscolorappdb
+      collection name: usrcolors
+      format: http://ge.tt/9YWPWXE/v/3?c
+    - username should be unique. 
+    - each json structure should have id (use UUID).
+    - users cannot delete the saved colors but can block it.
+      setting the block field to true means that the color is blocked by the user.
+    - non-blocked blends are not affected by blocked blends.
+
+4. Adaptive color blender. (PENDING)
+Feature ID: #ocis-color-app-adaptive #ocis-optional-needed
+    - apply artificial intelligence for user suggestions and adaptive comparison.
+
+5. Share colors. (PENDING)
+Feature ID: #ocis-color-app-rainbow #ocis-optional-needed
+    - share colors to other users.
+
+6. Extended color formats. (PENDING)
+Feature ID: #ocis-color-app-xtrs-clrfrmt #ocis-optional-needed
+    - more color formats.
+
+7. Developer's resources. (PENDING)
+Feature ID: #ocis-color-app-tech #ocis-optional-needed
+    - use this app for other devs.
+      devs can reference colors to be used on their online projects.
+    - developers can extend filters, create new and save it, and share filters.
+
+8. Color App UI Themes (PENDING)
+Feature ID: #ocis-color-app-xtrs-uithm #ocis-optional-needed
+    - developers can create new color wheels and color blenders ui save it and share it.
+
+References:
+*http://web.forret.com/tools/color.asp
+*http://www.colorblender.com
+*http://en.wikipedia.org/wiki/Color_model
+*http://paulbourke.net/texture_colour/convert/
+*http://www.colorschemer.com/online.html
+
+Email issue reports to this design to richeve.bebedor@yahoo.com
+
+Issue Report Mail Format
+================================
+subject: ISSUE:<spec id>
+attachment: text file
+mail content:
+	date reported:
+	issue name:
+	report version:	
+
+Issue Report Document Format
+================================
+1. <issue>
+   description
+2. <issue>
+   description
+...
+
+**Issues can be clarifications, 
+spec modifications in the form of suggestions
+and error reports to specifications.**
+
+
+RESTRICTED DEADLINE: OCTOBER 04, 2O12
+
+DEADLINE MATRIXS
+====================================================================================================
+JUNE 04, 2012 			- First stable running prototype. (version 1.9)
+JUNE 05-23, 2012 		- Testing period. (version 1.9.0 - version 1.9.9)
+				- Test evaluation every even dates.
+JUNE 24, 2012 			- First stable running version. (version 2.0)
+JUNE 25-JULY 23, 2012 		- User testing period. (version 2.0.0 - version 2.0.9)
+				- Test evaluation every even dates.
+JULY 24, 2012			- First stabled and tested running version (version 2.1)
+				- DEPLOYMENT :)
+JULY 25-31, 2012		- Apply color sharing. (version 2.2)
+AUGUST 01-11, 2012		- Apply developers sharing. (version 2.3)
+AUGUST 12-31, 2012		- Apply adaptive color blending. (version 2.4)
+SEPTEMBER 01-15, 2012		- Apply developers' resources. (version 2.5)
+SEPTEMBER 16-22, 2012		- Testing period. (version 2.5.0 - version 2.8.9)
+SEPTEMBER 23, 2012		- Second stable running prototype. (version 2.9)
+SEPTEMBER 24-OCTOBER 04, 2012	- User testing period. (version 2.9.0 - version 2.9.9)
+OCTOBER 05, 2012		- Second stable running version (version 3.0)
+				- DEPLOYMENT AGAIN! HOORAY! :D
+====================================================================================================

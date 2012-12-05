@@ -1,0 +1,167 @@
+App Name: OCIS Font App
+App ID: #ocis-font-app
+Spec ID: #ocis-font-app:1:0-03042012
+Resource URL:
+
+Developer:
+	Rommel Reyes
+	Ronald Erosa
+
+Task ID:
+#task-opts-id-rommelreyes-fontapp
+#task-opts-id-ronalderosa-fontapp
+
+Language:
+*JavaScript, HTML, CSS, JSON
+
+Frameworks:
+*JQuery and NodeJS (you can provide additional frameworks)
+
+Database:
+*MongoDB
+
+Designer's Comments:
+"Please make your code 
+understandable, 
+abstractive, 
+flexible, 
+rationalized,
+modularized,
+and optimized.
+I will not accept shits. :)"
+
+Overview:
+OCIS Font App is a portable, standalone and extensible font chooser and text editor application.
+
+Specifications (version 1.0):
+
+	Pre-Specification:
+	1. Create a client application (HTML, CSS, JS) and a server application (NodeJS).
+		- the server application is in the form of web service.
+		  host: localhost
+		  port: 12345
+		  reques type: POST
+	2. The client application must request to the server application using the following endpoints:
+		/fonts 
+			- get all the colors in the form of json array
+			- (colors_json format)
+		/effects 
+			- get all the filters in the form of json array
+			- (fltrs_json format)
+		/<username>/designs
+			- get all the blends of the specified user in the form of json
+			- (usr-colors_json format)
+		/evaporate
+			- save users blends 
+			- input: blends in the form of json 
+			- (usr-colors_json format)
+
+
+1. Font chooser. (ACTIVE)
+Feature ID: #ocis-font-app-fonteau
+    - single ui font chooser with font comparison.
+TODO:
+    - create a simple font chooser with the following sub features:
+      *Single character preview.
+        - display single character per font selected.
+        - the character can be 
+                resized,
+                  - the font size should be expressed in multiple formats
+                  - em, px, and percent.
+                change styles,
+                  - bold, italic, plain, underlined, strikedthrough, overlined, boxed
+                  - overlined (new feature, line over the top of text)
+                  - boxed (new feature, the text is enclosed in box)
+                change width and height,
+                and change color (using OCIS Color App)
+      *Font information display.
+        - display font information and text changes real time.
+          display font author, etc.
+          display text properties changed during real time editing.
+      *All characters with selection.
+        - display all available characters per font and let users select.
+        - everytime the user selects, display the single character on the preview
+          together with the font information.
+      *Text input and test font.
+        - users can input texts and test the selected font
+        - the text can be resized, change styles, change width and height, change color,
+                change letter spacing,
+                change word spacing,
+                change text style,
+                and customized each character.
+      *Upload font from local workstation
+
+
+
+2. Font Designer. (ACTIVE)
+Feature ID: #ocis-font-app-artist
+    - create font mark-ups
+TODO:
+
+
+3. Typographer. (ACTIVE)
+Feature ID: #ocis-font-app-typo
+    - apply font mark-up on text.
+TODO:
+
+
+4. Store user's marked-up texts and mark-ups. (ACTIVE)
+Feature ID: #ocis-font-app-typocrud
+    - application must have a CrUD operation.
+TODO:
+
+5. Developer's resources
+
+References:
+*
+*
+*
+*
+*
+
+Email issue reports to this design to richeve.bebedor@yahoo.com
+
+Issue Report Mail Format
+================================
+subject: ISSUE:<spec id>
+attachment: text file
+mail content:
+	date reported:
+	issue name:
+	report version:	
+
+Issue Report Document Format
+================================
+1. <issue>
+   description
+2. <issue>
+   description
+...
+
+**Issues can be clarifications, 
+spec modifications in the form of suggestions
+and error reports to specifications.**
+
+
+RESTRICTED DEADLINE: NOVEMBER 04, 2O12
+
+DEADLINE MATRIXS
+====================================================================================================
+JULY 24, 2012 			- First stable running prototype. (version 1.9)
+JULY 25- JULY 23, 2012 		- Testing period. (version 1.9.0 - version 1.9.9)
+				- Test evaluation every even dates.
+JULY 25, 2012 			- First stable running version. (version 2.0)
+JULY 25-AUGUST 23, 2012 	- User testing period. (version 2.0.0 - version 2.0.9)
+				- Test evaluation every even dates.
+AUGUST 24, 2012			- First stabled and tested running version (version 2.1)
+				- DEPLOYMENT :)
+AUGUST 25-31, 2012		- Apply . (version 2.2)
+SEPTEMBER 01-11, 2012		- Apply . (version 2.3)
+SEPTEMBER 12-30, 2012		- Apply . (version 2.4)
+OCTOBER 01-15, 2012		- Apply developers' resources. (version 2.5)
+OCTOBER 16-22, 2012		- Testing period. (version 2.5.0 - version 2.8.9)
+OCTOBER 23, 2012		- Second stable running prototype. (version 2.9)
+OCTOBER 24-NOVEMBER 04, 2012	- User testing period. (version 2.9.0 - version 2.9.9)
+NOVEMBER 05, 2012		- Second stable running version (version 3.0)
+				- DEPLOYMENT AGAIN! HOORAY! :D
+====================================================================================================

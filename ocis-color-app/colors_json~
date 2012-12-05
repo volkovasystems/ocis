@@ -1,0 +1,15 @@
+//this is a comment
+//color json format
+{
+	clrid:"format: #clr<rgb hex value><UUID>",
+	frmt:{
+		hex:"rgb",
+		rgb:"r g b",
+		a:"alpha",
+		html:"#hex",
+		hsv:"h% s% v%",
+		hsl:"h% s% l%",
+		cmyk:"c% m% y% k%",
+		gscle:"threshold"
+	}
+}
