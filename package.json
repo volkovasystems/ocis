@@ -1,0 +1,22 @@
+{
+	"name":"ocis",
+	"author":"Richeve S. Bebedor",
+	"version":"0.0.1",
+	"dependencies":{
+		"async":"",
+		"express":"",
+		"passport":"",
+		"passport-facebook":"",
+		"passport-twitter":"",
+		"mongodb":"",
+		"node-uuid":"",
+		"memory-cache":"",
+		"xml2js":"",
+		"request":"",
+		"mongoose":"",
+		"socket.io":"",
+		"ntwitter":"",
+		"sockjs":"",
+		"optimist":""
+	}
+}
