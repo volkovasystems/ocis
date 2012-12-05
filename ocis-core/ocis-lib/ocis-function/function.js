@@ -211,6 +211,49 @@ function cloneEntity( entity, callback ){
 // @method-end:true
 //:	================================================================================================
 
+var x = {
+	samplea: "a",
+	samplec:[ {a:1,b:1},{a:7,b:5},{a:9,b:8},{a:4,b:2}],
+	sampleb: {
+		suba: "a",
+		func: function( ){
+			console.log( "Hello World" );
+		},
+		subb: {
+			x:{
+				d:{
+					e:[
+					{
+						a:1,
+						d:{
+							s:4,
+							v:4,
+						}
+					}
+					]
+				}
+			},
+			c:[
+			{
+				a:7,
+				b:[
+				3,5,6,7, ( function(){ console.log( "Hello World" ); } )
+				]
+			}
+			]
+		}
+
+	}
+};
+var date = Date.now();
+cloneEntity( x,
+	function( cloned ){
+		console.log( "Time: " + ( Date.now() - date ) + " millisecond/s" );
+		x.samplea = 4;
+		console.log( JSON.stringify( cloned, null, "\t" ) );
+		console.log( JSON.stringify( x, null, "\t" ) );
+	} )( );
+
 //:	================================================================================================
 /*
 	@methodinfo-start:
