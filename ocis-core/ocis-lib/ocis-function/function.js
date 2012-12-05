@@ -8,19 +8,21 @@
 		@variable-end:true
 
 		@packages: {
-			"crypto": "npm",
 			"node-uuid": "npm",
 			"async": "npm",
-			"util": "npm"
+			"util": "node",
+			"crypto": "node",
+			"fs":"node"
 		}
 		@packages-end:true
 	@requireinfo-end:true
 */
 //	@require-start:
 var _ = {
-	crypto: require( "crypto" ),
 	uuid: require( "node-uuid" ),
 	async: require( "async" ),
+	fs: require( "fs" ),
+	crypto: require( "crypto" ),
 	util: require( "util" )
 };
 //	@require-end:true
@@ -107,7 +109,9 @@ function cloneEntity( entity, callback ){
 		return ( function( config ){
 			function cloneArray( element, callback ){
 				//: Clone element that is either, array or object type.
-				if( element instanceof Array || typeof element == "object" ){
+				if( typeof element == "function" ){
+					cloneFunction( element, callback );
+				}else if( element instanceof Array || typeof element == "object" ){
 					cloneEntity( element,
 						function( cloned ){
 							callback( cloned );
@@ -119,7 +123,9 @@ function cloneEntity( entity, callback ){
 
 			function cloneObject( entity, key, callback ){
 				//: Clone entity with the specified key.
-				if( typeof entity[ key ] == "object" || entity[ key ] instanceof Array ){
+				if( typeof entity[ key ] == "function" ){
+					cloneFunction( entity[ key ], callback );
+				}else if( typeof entity[ key ] == "object" || entity[ key ] instanceof Array ){
 					cloneEntity( entity[ key ],
 						function( cloned ){
 							callback( cloned );
@@ -127,6 +133,21 @@ function cloneEntity( entity, callback ){
 				}else{
 					callback( entity[ key ] );
 				}
+			}
+			
+			function cloneFunction( method, callback ){
+				var methodID = _.crypto.createHash( "md5" )
+					.update( method.toString( ) + ":" + _.uuid.v4( ), "utf8" )
+					.digest( "hex" ).toString( );
+				_.fs.writeFile( methodID + ".js", 
+						"exports = " + method.toString( ),
+						function( error ){
+							if( error ){
+								return callback( error );
+							}
+							callback( require( "./" + methodID + ".js" ) );
+							_.fs.unlink( "./" + methodID + ".js" );
+						} );
 			}
 
 			if( entity instanceof Array ){
