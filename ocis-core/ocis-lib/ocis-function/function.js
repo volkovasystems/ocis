@@ -58,7 +58,7 @@ var _ = {
 				todo: [
 					{
 						description: "Serialize functions to achieve deepest cloning.",
-						done: false,
+						done: true,
 					}
 				],
 				xxx: [ { description: "Current execution time of 2-8 milliseconds" } ],
@@ -107,6 +107,19 @@ function cloneEntity( entity, callback ){
 	*/
 	try{
 		return ( function( config ){
+			
+			//: Prepare the function to be less error prone
+			if( config || !entity || !callback ){
+				//: We provide alternatives if entity or callback is not existing
+				entity = ( config || {} ).entity || entity;
+				calllback = ( config || {} ).callback || callback;
+			}
+			
+			//: Reduce error explosion
+			if( !entity || !callback ){
+				return null;
+			}
+			
 			function cloneArray( element, callback ){
 				//: Clone element that is either, array or object type.
 				if( typeof element == "function" ){
@@ -136,18 +149,49 @@ function cloneEntity( entity, callback ){
 			}
 			
 			function cloneFunction( method, callback ){
+				//: Clone the function type object
+				/*:
+					First we need to create the method ID.
+					The method ID will be used to identify the function 
+						out of many functions to be created.
+				*/
 				var methodID = _.crypto.createHash( "md5" )
 					.update( method.toString( ) + ":" + _.uuid.v4( ), "utf8" )
 					.digest( "hex" ).toString( );
-				_.fs.writeFile( methodID + ".js", 
-						"exports = " + method.toString( ),
+				
+				//: We created this function so that we will not do the same procedure twice.
+				function persistFunction( locals ){
+					/*:
+					 	We will write the function to a temporary file using 
+					 		the method ID as the file name and the variable
+					 		name of the function.
+					*/
+					_.fs.writeFile( methodID + ".js", 
+						"exports._" + methodID + "=" + method.toString( ),
 						function( error ){
 							if( error ){
 								return callback( error );
 							}
-							callback( require( "./" + methodID + ".js" ) );
+							//: Return the fresh function.
+							method = require( "./" + methodID + ".js" )[ "_" + methodID ];
+							//: Append the locals if there are any locals.
+							method.locals = locals;
+							callback( method );
+							//: Delete the temporary file.
 							_.fs.unlink( "./" + methodID + ".js" );
 						} );
+				}
+				
+				//: We want to clone the locals.
+				if( method.locals ){
+					cloneEntity( method.locals, 
+						function( locals ){
+							persistFunction( locals );
+						} );
+					return;
+				}
+				//: If there are no locals.
+				persistFunction( );
 			}
 
 			if( entity instanceof Array ){
@@ -180,6 +224,8 @@ function cloneEntity( entity, callback ){
 								cloneObject( entity,
 									key,
 									function( cloned ){
+										console.log( "Key: " + key );
+										console.log( "Cloned: " + _.util.inspect( cloned ) );
 										clone[ key ] = cloned;
 										cache( null );
 									} );
@@ -210,49 +256,6 @@ function cloneEntity( entity, callback ){
 }
 // @method-end:true
 //:	================================================================================================
-
-var x = {
-	samplea: "a",
-	samplec:[ {a:1,b:1},{a:7,b:5},{a:9,b:8},{a:4,b:2}],
-	sampleb: {
-		suba: "a",
-		func: function( ){
-			console.log( "Hello World" );
-		},
-		subb: {
-			x:{
-				d:{
-					e:[
-					{
-						a:1,
-						d:{
-							s:4,
-							v:4,
-						}
-					}
-					]
-				}
-			},
-			c:[
-			{
-				a:7,
-				b:[
-				3,5,6,7, ( function(){ console.log( "Hello World" ); } )
-				]
-			}
-			]
-		}
-
-	}
-};
-var date = Date.now();
-cloneEntity( x,
-	function( cloned ){
-		console.log( "Time: " + ( Date.now() - date ) + " millisecond/s" );
-		x.samplea = 4;
-		console.log( JSON.stringify( cloned, null, "\t" ) );
-		console.log( JSON.stringify( x, null, "\t" ) );
-	} )( );
 
 //:	================================================================================================
 /*
@@ -426,6 +429,19 @@ function hashIdentity( object, callback ){
 */
 function hashObject( object, strict, callback ){
 	return ( function( config ){
+		
+		//: Prepare the function to be less error prone
+		if( config || !object || !callback ){
+			//: We provide alternatives if parameters are not existing
+			object = ( config || {} ).object || object;
+			calllback = ( config || {} ).callback || callback;
+		}
+		
+		//: Reduce error explosion
+		if( !object || !callback ){
+			return null;
+		}
+		
 		//: This is not an object, do nothing.
 		if( typeof object != "object" ){
 			return callback( );
@@ -517,6 +533,27 @@ function hashObject( object, strict, callback ){
 */
 function constructLevels( object, minimal, callback ){
 	return ( function( config ){
+		
+		//: Prepare the function to be less error prone
+		if( config || !object || !callback ){
+			//: We provide alternatives if parameters are not existing
+			object = ( config || {} ).object || object;
+			calllback = ( config || {} ).callback || callback;
+		}
+		
+		/*: 
+			If callback is not existing we invalidate the request
+				to this function.
+		*/
+		if( !callback ){
+			return null;
+		}
+		
+		//: Callback exists but there is no request parameters.
+		if( !object ){
+			return callback( );
+		}
+		
 		function minimize( levels ){
 			if( minimal ){
 				for( var key in levels ){
@@ -593,11 +630,219 @@ function constructLevels( object, minimal, callback ){
 // @method-end:true
 //:	================================================================================================
 
-/*constructLevels( { "data.level1.level2": "value" },
-	true,
-	function( levels ){
-		console.log( "" )
-	} );*/
+//:	================================================================================================
+function verifyParameters( interface, parameters, callback ){
+	/*:
+		Interface is an object type entity containing conditions
+			regarding the parameters.
+	*/
+}
+//:	================================================================================================
+
+//:	================================================================================================
+function Interface( configuration ){
+	/*:
+		Interface format convention
+		
+		The interface is an object stating the meta types and configuration of the parameter.
+		It is compose of the following components in JSON formatted structure:
+		
+		{
+			key|":optional":type|Class|subtypes|settings
+		}
+		
+			The key can have an optional feature appended.
+			{
+				"color:optional":number
+			}
+		
+			The type can be any of the following types:
+			1. number
+			2. boolean
+			3. null
+			4. undefined
+			5. string
+			6. object
+			7. function
+			
+			Class can be any class like:
+			[*] Array
+			[*] Date
+		
+			Subtypes are special types appended to types or class.
+				When the type or class has a subtype it must be in this format
+			
+			This configuration states that the date can be by default Date or 
+				a date in string format and should be converted to Date type
+			{
+				"date":"Date:string"
+			}
+			
+			
+			Mixed subtypes can be like this:
+			
+			This configuration states that the date can be a number or a string
+				but should be converted to Date type
+			{
+				"date":"Date:string|number"
+			}
+			
+			
+			None default mixed subtypes can be like this:
+			
+			This configuration states that the date can be either Date, number or string.
+			{
+				"date":"Date|string|number"
+			}
+			
+			
+			Optional subtype can be like this:
+			
+			This configuration states that the Date type is optional 
+				and is possible for deprecation.
+			{
+				"date":"Date;optional|string|number"
+			}
+			
+			
+			Null vs Undefined subtype:
+			
+			A null subtype means that the initial value of the property is nothing.
+			An undefined subtype means that the key can be there or not.
+			The difference between an optional key and an undefined typed key
+				is that, optional key cannot be an undefined typed key.
+			
+			
+			Case of arrays:
+			
+			An array subtype can be like this:
+			{
+				"dates":"Array-Date|string|number"
+			}
+			This configuration states that the key "dates" can be an array of 
+				(denoted by - sign) Date, string or number type.
+			All Array class types are bounded to the Array class.
+				Therefore, no other subtypes follows any Array class type
+			
+			
+			Settings:
+			
+			Settings are self imposed configuration. It may affect the flow
+				of the function or anything that manipulates the entity.
+				But it should not affect the whole application.
+				They are extremely localized configuration.
+			All settings format are denoted by the prefix ":" colon.	
+			
+			
+			
+			The configuration parameter composed of the basic
+				key-type interface format.
+	*/
+	
+	if( !this.isInterface( configuration ) ){
+		throw {
+			name: "error:Interface",
+			input: null,
+			message: "invalid basic interface configuration parameter on initialization",
+			tracepath: null,
+			date: Date.now( )
+		};
+	}
+	//: We will clone the basic format configuration here.
+	//: The interface configuration passed the verification.
+	var interface = { 
+		_isVerifiedBasicInterface: true,
+		_basicConfiguration: configuration,
+		_intermediateConfiguration: {}
+	};
+	var hasDefault = null;
+	var hasArray = null;
+	var connector = null;
+	//: We will run the key to the first interface transformation procedure.
+	for( var key in configuration ){
+		interface[ key ] = configuration[ key ].split( "|" );
+		hasDefault = false;
+		hasArray = false;
+		for( var index in interface[ key ] ){
+			if( !!~interface[ key ][ index ].indexOf( ":" ) ){
+				hasDefault = true;
+			}else if( !!~interface[ key ][ index ].indexOf( "-" ) ){
+				hasArray = true;
+			}else if( index ){
+				if( hasDefault ){
+					connector = ":";
+				}else if( hasArray ){
+					connector = "-";
+				}
+				//: TODO: Support for generics here?
+				if( connector ){
+					interface[ key ][ index ] = interface[ key ][ 0 ].split( connector )[ 0 ] 
+						+ connector + interface[ key ][ index ];
+				}	
+			}
+		}
+		//: We store every configuration format.
+		interface._intermediateConfiguration[ key ] = interface[ key ];
+	}
+	//: The intermediate format interface is finished.
+	this.interface = configuration;
+}
+
+Interface.isInterface = function( interface, callback ){
+	//: This function will only check for basic interface format.
+	function verify( ){
+		if( interface._isVerifiedBasicInterface ){
+			return true;
+		}
+		for( var key in interface ){
+			//: Check if the configuration is correct.
+			//: We check the name of the function if it is a class type.
+			if( ( !( ~"boolean|number|string|object|function|null|undefined"
+					.indexOf( interface[ key ] ) )
+					&& typeof interface[ key ] != "string" )
+				|| ( typeof interface[ key ] != "function"
+					&& !( interface[ key ].name.substring( 0, 1 )
+						.match( /[A-Z]/ ) || [] ).length ) )
+			{
+				//: For every invalid key we return false.
+				return false;
+			}
+		}
+		return true;
+	}
+	if( !callback ){
+		return verify( );
+	}else{
+		return ( function( config ){
+			callback( verify( ) );
+		} );
+	}
+};
+Interface.prototype.isInterface = Interface.isInterface;
+var verifyInterface = Interface.isInterface;
+
+
+Interface.prototype.set = function( key, type, callback ){
+	
+};
+
+Interface.prototype.configure = function( key, configuration, callback ){
+	
+};
+
+Interface.prototype.get = function( key, callback ){
+	
+};
+
+Interface.prototype.has = function( metaType, key, callback ){
+	
+};
+
+Interface.prototype.getConfiguration = function( type, callback ){
+	
+};;
+;;
+//:	================================================================================================
 
 //:	================================================================================================
 function inspectType( value, verbose ){
