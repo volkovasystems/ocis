@@ -645,6 +645,12 @@ function Interface( configuration ){
 		Interface format convention
 		
 		The interface is an object stating the meta types and configuration of the parameter.
+		The interface contains general methods for only accessing and manipulating
+			the meta properties. It does not understand the usage of these properties.
+		It is not the responsibility of the function to determine if your
+			configuration is correct at 100%. The function will only check
+			the format of the configuration as well as the basic format.
+			
 		It is compose of the following components in JSON formatted structure:
 		
 		{
@@ -725,6 +731,56 @@ function Interface( configuration ){
 				Therefore, no other subtypes follows any Array class type
 			
 			
+			Case of generics:
+			
+			Interface has support for generics, they are object of general
+				types but can contain several types either defined before
+				or during runtime.
+			A general type can be a single child or parent type or
+				can have multiple child or parent types.
+				It must also support types declared at runtime and wildcards.
+				
+				Single generic type:
+				{
+					"myobject":"ThisClass-Date"
+				}
+				This configuration states that, ThisClass can only
+					contain Date class.
+				
+				Single generic type with boundaries:
+				{
+					"myobject":"ThisClass-Date;child"
+				}
+				This configuration states that, ThisClass can only
+					contain anything that is a child of Date class.
+				
+				{
+					"myobject":"ThisClass-Date;parent"
+				}
+				This configuration states that, ThisClass can only
+					contain anything that is a parent of Date class.
+				
+				
+				Wildcard and runtime types:
+				{
+					"myobject":"ThisClass-T?"
+				}
+				This configuration states that, ThisClass can have a
+					type T and this is unknown at compile time.
+				
+				{
+					"myobject":"T?"
+				}
+				This configuration states that, a certain class T
+					exists but not identified.
+				
+				{
+					"myobject":"ThisClass-*"
+				}
+				This configuration states that, ThisClass can have
+					different types and is unknown at compile time.
+			
+			
 			Settings:
 			
 			Settings are self imposed configuration. It may affect the flow
@@ -755,9 +811,10 @@ function Interface( configuration ){
 		_basicConfiguration: configuration,
 		_intermediateConfiguration: {}
 	};
-	var hasDefault = null;
-	var hasArray = null;
-	var connector = null;
+	var hasDefault = false;
+	var hasArray = false;
+	//var hasGeneric = false;
+	var connector = "";
 	//: We will run the key to the first interface transformation procedure.
 	for( var key in configuration ){
 		this.meta[ key ] = configuration[ key ].split( "|" );
@@ -766,7 +823,9 @@ function Interface( configuration ){
 		for( var index in this.meta[ key ] ){
 			if( !!~this.meta[ key ][ index ].indexOf( ":" ) ){
 				hasDefault = true;
-			}else if( !!~this.meta[ key ][ index ].indexOf( "-" ) ){
+			}else if( !!~this.meta[ key ][ index ].indexOf( "-" )
+				&& !!~this.meta[ key ][ index ].indexOf( "Array" ) )
+			{
 				hasArray = true;
 			}else if( index ){
 				if( hasDefault ){
@@ -822,7 +881,23 @@ var verifyInterface = Interface.isInterface;
 
 
 Interface.prototype.set = function( key, type, callback ){
-	
+	//: Set let's you assign new type.
+	var self = this;
+	function set( config ){
+		key = config.key || key;
+		type = config.type || type;
+		callback = config.callback || callback;
+		//: TODO: Add a verification here.
+		self.meta[ key ] = type;
+		if( callback ){
+			return callback( true );
+		}
+		return true;
+	}
+	if( callback ){
+		return set;
+	}
+	return set( );
 };
 
 Interface.prototype.configure = function( key, configuration, callback ){
@@ -830,17 +905,24 @@ Interface.prototype.configure = function( key, configuration, callback ){
 };
 
 Interface.prototype.get = function( key, callback ){
-	
+	var self = this;
+	function get( config ){
+		key = config.key || key;
+		callback = config.callbacl || callback;
+	}
 };
 
 Interface.prototype.has = function( metaType, key, callback ){
 	
 };
 
+Interface.prototype.is = function( metaType, key, callback ){
+	
+};
+
 Interface.prototype.getConfiguration = function( type, callback ){
 	
-};;
-;;
+};
 //:	================================================================================================
 
 //:	================================================================================================
