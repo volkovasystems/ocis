@@ -750,7 +750,7 @@ function Interface( configuration ){
 	}
 	//: We will clone the basic format configuration here.
 	//: The interface configuration passed the verification.
-	var interface = { 
+	this.meta = { 
 		_isVerifiedBasicInterface: true,
 		_basicConfiguration: configuration,
 		_intermediateConfiguration: {}
@@ -760,13 +760,13 @@ function Interface( configuration ){
 	var connector = null;
 	//: We will run the key to the first interface transformation procedure.
 	for( var key in configuration ){
-		interface[ key ] = configuration[ key ].split( "|" );
+		this.meta[ key ] = configuration[ key ].split( "|" );
 		hasDefault = false;
 		hasArray = false;
-		for( var index in interface[ key ] ){
-			if( !!~interface[ key ][ index ].indexOf( ":" ) ){
+		for( var index in this.meta[ key ] ){
+			if( !!~this.meta[ key ][ index ].indexOf( ":" ) ){
 				hasDefault = true;
-			}else if( !!~interface[ key ][ index ].indexOf( "-" ) ){
+			}else if( !!~this.meta[ key ][ index ].indexOf( "-" ) ){
 				hasArray = true;
 			}else if( index ){
 				if( hasDefault ){
@@ -776,32 +776,31 @@ function Interface( configuration ){
 				}
 				//: TODO: Support for generics here?
 				if( connector ){
-					interface[ key ][ index ] = interface[ key ][ 0 ].split( connector )[ 0 ] 
-						+ connector + interface[ key ][ index ];
+					this.meta[ key ][ index ] = this.meta[ key ][ 0 ].split( connector )[ 0 ] 
+						+ connector + this.meta[ key ][ index ];
 				}	
 			}
 		}
 		//: We store every configuration format.
-		interface._intermediateConfiguration[ key ] = interface[ key ];
+		this.meta._intermediateConfiguration[ key ] = this.meta[ key ];
 	}
 	//: The intermediate format interface is finished.
-	this.interface = configuration;
 }
 
-Interface.isInterface = function( interface, callback ){
+Interface.isInterface = function( meta, callback ){
 	//: This function will only check for basic interface format.
 	function verify( ){
-		if( interface._isVerifiedBasicInterface ){
+		if( meta._isVerifiedBasicInterface ){
 			return true;
 		}
-		for( var key in interface ){
+		for( var key in meta ){
 			//: Check if the configuration is correct.
 			//: We check the name of the function if it is a class type.
 			if( ( !( ~"boolean|number|string|object|function|null|undefined"
-					.indexOf( interface[ key ] ) )
-					&& typeof interface[ key ] != "string" )
-				|| ( typeof interface[ key ] != "function"
-					&& !( interface[ key ].name.substring( 0, 1 )
+					.indexOf( meta[ key ] ) )
+					&& typeof meta[ key ] != "string" )
+				|| ( typeof meta[ key ] != "function"
+					&& !( meta[ key ].name.substring( 0, 1 )
 						.match( /[A-Z]/ ) || [] ).length ) )
 			{
 				//: For every invalid key we return false.
