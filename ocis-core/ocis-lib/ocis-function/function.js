@@ -249,7 +249,7 @@ function cloneEntity( entity, callback ){
 			name: "error:cloneEntity",
 			input: null,
 			message: error.message,
-			tracepath: null,
+			tracePath: null,
 			date: Date.now( )
 		};
 	}
@@ -321,7 +321,7 @@ function hashEntity( identity, callback ){
 			name: "error:hashEntity",
 			input: _.util.inspect( arguments, true, 5 ),
 			message: error.message,
-			tracepath: null,
+			tracePath: null,
 			date: Date.now( )
 		};
 	}
@@ -377,7 +377,7 @@ function hashIdentity( object, callback ){
 		throw {
 			name: "error:hashIdentity",
 			message: error.message,
-			tracepath: null,
+			tracePath: null,
 			date: Date.now( )
 		};
 	}
@@ -800,7 +800,7 @@ function Interface( configuration ){
 			name: "error:Interface",
 			input: null,
 			message: "invalid basic interface configuration parameter on initialization",
-			tracepath: null,
+			tracePath: null,
 			date: Date.now( )
 		};
 	}
@@ -809,7 +809,8 @@ function Interface( configuration ){
 	this.meta = { 
 		_isVerifiedBasicInterface: true,
 		_basicConfiguration: configuration,
-		_intermediateConfiguration: {}
+		_intermediateConfiguration: {},
+		_decomposedConfiguration: {}
 	};
 	var hasDefault = false;
 	var hasArray = false;
@@ -844,6 +845,8 @@ function Interface( configuration ){
 		this.meta._intermediateConfiguration[ key ] = this.meta[ key ];
 	}
 	//: The intermediate format interface is finished.
+	
+	
 }
 
 Interface.isInterface = function( meta, callback ){
@@ -900,17 +903,27 @@ Interface.prototype.set = function( key, type, callback ){
 	return set( );
 };
 
-Interface.prototype.configure = function( key, configuration, callback ){
-	
-};
-
 Interface.prototype.get = function( key, callback ){
 	var self = this;
 	function get( config ){
 		key = config.key || key;
-		callback = config.callbacl || callback;
+		callback = config.callback || callback;
+		if( callback ){
+			return callback( self.meta[ key ] );
+		}
+		return self.meta[ key ];
 	}
+	if( callback ){
+		return get;
+	}
+	return get( );
 };
+
+Interface.prototype.configure = function( key, configuration, callback ){
+	
+};
+
+
 
 Interface.prototype.has = function( metaType, key, callback ){
 	
@@ -1019,7 +1032,7 @@ function inspectType( value, verbose ){
         throw {
             name: "error:inspectType",
             message: error.message,
-            tracepath: null,
+            tracePath: null,
             date: Date.now( )
         };
     }
@@ -1071,7 +1084,7 @@ function inspectTypes( object, verbose, callback ){
         throw {
             name: "error:inspectTypes",
             message: error.message,
-            tracepath: null,
+            tracePath: null,
             date: Date.now( )
         };
     }
@@ -1233,7 +1246,7 @@ function equals( object, comparator, callback ){
 
 							var comparatorkeys = Object.keys( comparatorlevels );
 							var comparatorlevelcount = comparatorkeys.length;
-							var matchcount = 0;
+							var matchCount = 0;
 							var unmatches = 0;
 
 							_.async.forEach( objectkeys,
@@ -1243,7 +1256,7 @@ function equals( object, comparator, callback ){
 									var comparatorhashid = comparatorlevels[ comparatorkey ];
 									var objecthashid = objectlevels[ objectkey ];
 									if(  comparatorhashid == objecthashid ){
-										matchcount++;
+										matchCount++;
 									}else if( comparatorkey == objectkey ){
 										unmatches++;
 									}
@@ -1257,16 +1270,16 @@ function equals( object, comparator, callback ){
 								if( error ){
 									return callback( false, error );
 								}
-								//: console.log( "Matches: " + matchcount );
+								//: console.log( "Matches: " + matchCount );
 								var average = ( objectlevelcount + comparatorlevelcount ) / 2;
 								//: console.log( "Average: " + average );
-								var redundancy = ( matchcount > average )?
-									Math.abs( matchcount - average ) : 0;
+								var redundancy = ( matchCount > average )?
+									Math.abs( matchCount - average ) : 0;
 								redundancy = ( redundancy / average ) * 100;
 								//: console.log( "Redundancy: " + redundancy + "%" );
 								var difference = ( unmatches / average ) * 100;
 								//: console.log( "Difference: " + difference + "%" );
-								var percentage = ( matchcount / average ) * 100;
+								var percentage = ( matchCount / average ) * 100;
 								console.log( "Percentage: " + percentage + "%" );
 								var netpercentage = percentage - difference - redundancy;
 								//: console.log( "Net percentage: " + netpercentage + "%" );
@@ -1321,7 +1334,7 @@ function isDotNotated( object, callback ){
         throw {
             name: "error:isDotNotated",
             message: error.message,
-            tracepath: null,
+            tracePath: null,
             date: Date.now( )
         };
     }
@@ -1381,7 +1394,7 @@ function indexOf( entity, search, origin, index, startat, callback ){
                                 warning: {
                                     name: "warning:indexOf",
                                     message: "search query not supported",
-                                    tracepath: null,
+                                    tracePath: null,
                                     date: Date.now( )
                                 }
                             } );
@@ -1566,7 +1579,7 @@ function containsEntity( entity, search, level, callback ){
 			{
 				location:
 				query:
-				queryid:
+				queryID:
 				redundancy:
 			}
 
@@ -1578,16 +1591,17 @@ function containsEntity( entity, search, level, callback ){
 	*/
 
 	function normalizedLocations( locations ){
-		var _locations = JSON.stringify( locations );
+		var clonedLocations = JSON.stringify( locations );
 		var redundants = [];
-		var expquery;
+		var query;
 		var flag = false;
 		//: We will reuse the for loop here twice.
 		for( var i = 0; i < locations.length; i++ ){
 			if( !flag ){
 				//: First splice all redundants.
-				expquery = new RegExp( JSON.stringify( locations[ i ] ), "g" );
-				if( ( _locations.match( expquery ) || [] ).length > 1 ){
+				//: Use the value for the location to search for other similar locations.
+				query = new RegExp( JSON.stringify( locations[ i ] ), "g" );
+				if( ( clonedLocations.match( query ) || [] ).length > 1 ){
 					redundants.push( locations.splice( i--, 1 ) );
 				}
 				if( ( i + 1 ) == locations.length ){
@@ -1597,7 +1611,7 @@ function containsEntity( entity, search, level, callback ){
 			}else{
 				//: To increment the redundants.
 				for( var j in redundants ){
-					if( locations[ i ].queryid == redundants[ j ].queryid ){
+					if( locations[ i ].queryID == redundants[ j ].queryID ){
 						locations[ i ].redundancy++;
 					}
 				}
@@ -1611,8 +1625,8 @@ function containsEntity( entity, search, level, callback ){
 		function( cloned ){
 			constructLevels( cloned, true,
 			function( levels ){
-				var arraylevels = levels;
-				var arraykeys = Object.keys( arraylevels );
+				var arrayLevels = levels;
+				var arrayKeys = Object.keys( arrayLevels );
 				//: If search is an array in equal levels or indeterminate levels.
 				if( search instanceof Array ){
 					//: Create a copy of the search array.
@@ -1621,43 +1635,43 @@ function containsEntity( entity, search, level, callback ){
 						//: Construct levels to be compared.
 						constructLevels( cloned, true,
 						function( levels ){
-							var searchlevels = levels;
-							_.async.map( arraykeys,
-							function( arraykey, done ){
+							var searchLevels = levels;
+							_.async.map( arrayKeys,
+							function( arrayKey, done ){
 								//: We don't want to process beyond the prescribed level.
-								if( arraykeys.indexOf( arraykey ) > level && level !== 0 ){
+								if( arrayKeys.indexOf( arrayKey ) > level && level !== 0 ){
 									return done( null, null );
 								}
 								done( null,
-								function( cachelocation ){
+								function( cacheLocation ){
 									var location = [];
-									for( var key in searchlevels ){
+									for( var key in searchLevels ){
 										//: We compare regardless of type except for boolean types
-										if( typeof searchlevels[ key ] == "boolean"
-											&& searchlevels[ key ]
-											&& key == arraykey )
+										if( typeof searchLevels[ key ] == "boolean"
+											&& searchLevels[ key ]
+											&& key == arrayKey )
 										{
 											//: This is for handling key existence.
 											location.push( {
-												location: arraykey,
-												query: "isexists:" + key,
-												queryid: hashIdentity( "isexists:" + key ),
-												isexists: true,
+												location: arrayKey,
+												query: "isExists:" + key,
+												queryID: hashIdentity( "isExists:" + key ),
+												isExists: true,
 												redundancy: 0
 											} );
-										}else if( searchlevels[ key ] == arraylevels[ arraykey ]
-											|| searchlevels[ key ] === arraylevels[ arraykey ] )
+										}else if( searchLevels[ key ] == arrayLevels[ arrayKey ]
+											|| searchLevels[ key ] === arrayLevels[ arrayKey ] )
 										{
 											location.push( {
-												location: arraykey,
-												query: key + ":" + searchlevels[ key ],
-												queryid: hashIdentity( key + ":"
-													+ searchlevels[ key ] ),
+												location: arrayKey,
+												query: key + ":" + searchLevels[ key ],
+												queryID: hashIdentity( key + ":"
+													+ searchLevels[ key ] ),
 												redundancy: 0
 											} );
 										}
 									}
-									cachelocation( null, location );
+									cacheLocation( null, location );
 								} );
 							},
 							function( error, functions ){
@@ -1698,25 +1712,25 @@ function containsEntity( entity, search, level, callback ){
 						} )( );
 					} )( );
 				}else if( search instanceof RegExp ){
-					_.async.map( arraykeys,
-						function( arraykey, cachelocation ){
+					_.async.map( arrayKeys,
+						function( arrayKey, cacheLocation ){
 							//: Handle levels.
-							if( ( arraykey.match( "." ) || [] ).length > level && level !== 0 ){
-								return cachelocation( null, null );
+							if( ( arrayKey.match( "." ) || [] ).length > level && level !== 0 ){
+								return cacheLocation( null, null );
 							}
 							//: Apply regex.
-							var matches = ( arraylevels[ arraykey ] + "" ).match( search ) || [];
+							var matches = ( arrayLevels[ arrayKey ] + "" ).match( search ) || [];
 							if( !!~matches.length ){
-								return cachelocation( null,{
-									location: arraykey,
-									queryid: hashIdentity( search.toString( ) ),
+								return cacheLocation( null,{
+									location: arrayKey,
+									queryID: hashIdentity( search.toString( ) ),
 									query: search,
 									redundancy: 0,
 									matches: matches,
-									matchcount: matches.length
+									matchCount: matches.length
 								} );
 							}
-							cachelocation( null, null );
+							cacheLocation( null, null );
 						},
 						function( error, locations ){
 							//: Splice all nulls.
@@ -1734,24 +1748,24 @@ function containsEntity( entity, search, level, callback ){
 						function( _value, done ){
 							if( _value instanceof RegExp && typeof _value == "object" ){
 								var matches = ( "" + value ).match( _value ) || [];
-								var matchcount = matches.length;
-								if( matchcount ){
+								var matchCount = matches.length;
+								if( matchCount ){
 									/*:
 										Match count and matches are optional informations.
 											These informations will determine the data redundancy.
 									*/
 									return done( {
-										matchcount: matchcount,
+										matchCount: matchCount,
 										matches: matches,
 										redundancy: matches,
-										searchvalue: _value
+										searchValue: _value
 									} );
 								}
 							}else if( typeof _value == "boolean" && _value ){
 								//: This is for handling key existence.
 								return done( {
 									redundancy: 0,
-									searchvalue: "isexists"
+									searchValue: "isExists"
 								} );
 							}else if( ( typeof _value == "number"
                                     && ( _value == parseInt( value, 10 )
@@ -1760,7 +1774,7 @@ function containsEntity( entity, search, level, callback ){
 							{
 								return done( {
 									redundancy: 0,
-									searchvalue: _value
+									searchValue: _value
 								} );
 							}
 							done( );
@@ -1809,7 +1823,7 @@ function containsEntity( entity, search, level, callback ){
 								name: "error:containsEntity",
 								input: null,
 								message: "invalid search query format",
-								tracepath:
+								tracePath:
 									"identify entity as array:"
 								+	"clone entity:"
 								+	"construct levels:"
@@ -1823,47 +1837,46 @@ function containsEntity( entity, search, level, callback ){
 					//	@errorcapture-end:true
 					//: ============================================================================
 
-					_.async.map( arraykeys,
-					function( arraykey, cachelocation ){
-						if( arraykeys.indexOf( arraykey ) > level && level !== 0 ){
-							return cachelocation( null, null );
+					_.async.map( arrayKeys,
+					function( arrayKey, cacheLocation ){
+						if( arrayKeys.indexOf( arrayKey ) > level && level !== 0 ){
+							return cacheLocation( null, null );
 						}
-                        var isnumberkey;
-                        var isnumberindex;
+                        var isNumberKey;
+                        var isNumberIndex;
 						for( var i in indexes ){
-                            isnumberkey = parseInt( arraykey.split( "." )[ 0 ], 10 );
-                            isnumberindex = parseInt( indexes[ i ], 10 );
-							if( isnumberkey == isnumberindex
-								|| !!( arraykey.match( indexes[ i ] ) || [] ).length
-								|| !!~arraykey.indexOf( indexes[ i ] )
-								|| indexes[ i ] == arraykey )
+                            isNumberKey = parseInt( arrayKey.split( "." )[ 0 ], 10 );
+                            isNumberIndex = parseInt( indexes[ i ], 10 );
+							if( isNumberKey == isNumberIndex
+								|| !!( arrayKey.match( indexes[ i ] ) || [] ).length
+								|| !!~arrayKey.indexOf( indexes[ i ] )
+								|| indexes[ i ] == arrayKey )
 							{
-								filter( arraylevels[ arraykey ],
-								values,
-								function( filterresult ){
-									if( filterresult.searchvalue == "isexists" ){
+								filter( arrayLevels[ arrayKey ], values,
+								function( filterResult ){
+									if( filterResult.searchValue == "isExists" ){
 										//: For handling key existence.
-										return cachelocation( null, {
-											location: arraykey,
-											query: "isexists:" + arraykey,
-											queryid: hashIdentity( "isexists:" + arraykey ),
-											isexists: true,
-											redundancy: filterresult.redundancy
+										return cacheLocation( null, {
+											location: arrayKey,
+											query: "isExists:" + arrayKey,
+											queryID: hashIdentity( "isExists:" + arrayKey ),
+											isExists: true,
+											redundancy: filterResult.redundancy
 										} );
 									}
-									cachelocation( null, {
-										location: arraykey,
-										query: indexes[ i ] + ":" + filterresult.searchvalue,
-										queryid: hashIdentity( indexes[ i ] + ":"
-											+ filterresult.searchvalue ),
-										redundancy: filterresult.redundancy,
-										matches: filterresult.matches,
-										matchcount: filterresult.matchcount
+									cacheLocation( null, {
+										location: arrayKey,
+										query: indexes[ i ] + ":" + filterResult.searchValue,
+										queryID: hashIdentity( indexes[ i ] + ":"
+											+ filterResult.searchValue ),
+										redundancy: filterResult.redundancy,
+										matches: filterResult.matches,
+										matchCount: filterResult.matchCount
 									} );
 								} );
 								return;
 							}
-							cachelocation( );
+							cacheLocation( );
 						}
 					},
 					function( error, locations ){
@@ -1884,22 +1897,22 @@ function containsEntity( entity, search, level, callback ){
 							( ( !error )? locations : null ) );
 					} );
 				}else{
-					_.async.map( arraykeys,
-					function( arraykey, cachelocation ){
+					_.async.map( arrayKeys,
+					function( arrayKey, cacheLocation ){
 						//: Are they of the same type?
-						if( typeof arraylevels[ arraykey ] == typeof search
-							|| ( arraylevels[ arraykey ] + "" ) == ( search + "" )
-							|| parseFloat( arraylevels[ arraykey ] ) == parseFloat( search ) )
+						if( typeof arrayLevels[ arrayKey ] == typeof search
+							|| ( arrayLevels[ arrayKey ] + "" ) == ( search + "" )
+							|| parseFloat( arrayLevels[ arrayKey ] ) == parseFloat( search ) )
 						{
-							return cachelocation( null, {
-								location: arraykey,
-								queryid: hashIdentity( search.toString( ) ),
+							return cacheLocation( null, {
+								location: arrayKey,
+								queryID: hashIdentity( search.toString( ) ),
 								query: search,
 								redundancy: 0
 							} );
 						}
 						//: They don't match at all.
-						cachelocation( null, null );
+						cacheLocation( null, null );
 					},
 					function( error, locations ){
 						//: Splice all nulls
