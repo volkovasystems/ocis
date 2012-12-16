@@ -640,305 +640,6 @@ function verifyParameters( interface, parameters, callback ){
 //:	================================================================================================
 
 //:	================================================================================================
-function Interface( configuration ){
-	/*:
-		Interface format convention
-		
-		The interface is an object stating the meta types and configuration of the parameter.
-		The interface contains general methods for only accessing and manipulating
-			the meta properties. It does not understand the usage of these properties.
-		It is not the responsibility of the function to determine if your
-			configuration is correct at 100%. The function will only check
-			the format of the configuration as well as the basic format.
-			
-		It is compose of the following components in JSON formatted structure:
-		
-		{
-			key|":optional":type|Class|subtypes|settings
-		}
-		
-			The key can have an optional feature appended.
-			{
-				"color:optional":number
-			}
-		
-			The type can be any of the following types:
-			1. number
-			2. boolean
-			3. null
-			4. undefined
-			5. string
-			6. object
-			7. function
-			
-			Class can be any class like:
-			[*] Array
-			[*] Date
-		
-			Subtypes are special types appended to types or class.
-				When the type or class has a subtype it must be in this format
-			
-			This configuration states that the date can be by default Date or 
-				a date in string format and should be converted to Date type
-			{
-				"date":"Date:string"
-			}
-			
-			
-			Mixed subtypes can be like this:
-			
-			This configuration states that the date can be a number or a string
-				but should be converted to Date type
-			{
-				"date":"Date:string|number"
-			}
-			
-			
-			None default mixed subtypes can be like this:
-			
-			This configuration states that the date can be either Date, number or string.
-			{
-				"date":"Date|string|number"
-			}
-			
-			
-			Optional subtype can be like this:
-			
-			This configuration states that the Date type is optional 
-				and is possible for deprecation.
-			{
-				"date":"Date;optional|string|number"
-			}
-			
-			
-			Null vs Undefined subtype:
-			
-			A null subtype means that the initial value of the property is nothing.
-			An undefined subtype means that the key can be there or not.
-			The difference between an optional key and an undefined typed key
-				is that, optional key cannot be an undefined typed key.
-			
-			
-			Case of arrays:
-			
-			An array subtype can be like this:
-			{
-				"dates":"Array-Date|string|number"
-			}
-			This configuration states that the key "dates" can be an array of 
-				(denoted by - sign) Date, string or number type.
-			All Array class types are bounded to the Array class.
-				Therefore, no other subtypes follows any Array class type
-			
-			
-			Case of generics:
-			
-			Interface has support for generics, they are object of general
-				types but can contain several types either defined before
-				or during runtime.
-			A general type can be a single child or parent type or
-				can have multiple child or parent types.
-				It must also support types declared at runtime and wildcards.
-				
-				Single generic type:
-				{
-					"myobject":"ThisClass-Date"
-				}
-				This configuration states that, ThisClass can only
-					contain Date class.
-				
-				Single generic type with boundaries:
-				{
-					"myobject":"ThisClass-Date;child"
-				}
-				This configuration states that, ThisClass can only
-					contain anything that is a child of Date class.
-				
-				{
-					"myobject":"ThisClass-Date;parent"
-				}
-				This configuration states that, ThisClass can only
-					contain anything that is a parent of Date class.
-				
-				
-				Wildcard and runtime types:
-				{
-					"myobject":"ThisClass-T?"
-				}
-				This configuration states that, ThisClass can have a
-					type T and this is unknown at compile time.
-				
-				{
-					"myobject":"T?"
-				}
-				This configuration states that, a certain class T
-					exists but not identified.
-				
-				{
-					"myobject":"ThisClass-*"
-				}
-				This configuration states that, ThisClass can have
-					different types and is unknown at compile time.
-			
-			
-			Settings:
-			
-			Settings are self imposed configuration. It may affect the flow
-				of the function or anything that manipulates the entity.
-				But it should not affect the whole application.
-				They are extremely localized configuration.
-			All settings format are denoted by the prefix ":" colon.	
-			
-			
-			
-			The configuration parameter composed of the basic
-				key-type interface format.
-	*/
-	
-	if( !this.isInterface( configuration ) ){
-		throw {
-			name: "error:Interface",
-			input: null,
-			message: "invalid basic interface configuration parameter on initialization",
-			tracePath: null,
-			date: Date.now( )
-		};
-	}
-	//: We will clone the basic format configuration here.
-	//: The interface configuration passed the verification.
-	this.meta = { 
-		_isVerifiedBasicInterface: true,
-		_basicConfiguration: configuration,
-		_intermediateConfiguration: {},
-		_decomposedConfiguration: {}
-	};
-	var hasDefault = false;
-	var hasArray = false;
-	//var hasGeneric = false;
-	var connector = "";
-	//: We will run the key to the first interface transformation procedure.
-	for( var key in configuration ){
-		this.meta[ key ] = configuration[ key ].split( "|" );
-		hasDefault = false;
-		hasArray = false;
-		for( var index in this.meta[ key ] ){
-			if( !!~this.meta[ key ][ index ].indexOf( ":" ) ){
-				hasDefault = true;
-			}else if( !!~this.meta[ key ][ index ].indexOf( "-" )
-				&& !!~this.meta[ key ][ index ].indexOf( "Array" ) )
-			{
-				hasArray = true;
-			}else if( index ){
-				if( hasDefault ){
-					connector = ":";
-				}else if( hasArray ){
-					connector = "-";
-				}
-				//: TODO: Support for generics here?
-				if( connector ){
-					this.meta[ key ][ index ] = this.meta[ key ][ 0 ].split( connector )[ 0 ] 
-						+ connector + this.meta[ key ][ index ];
-				}	
-			}
-		}
-		//: We store every configuration format.
-		this.meta._intermediateConfiguration[ key ] = this.meta[ key ];
-	}
-	//: The intermediate format interface is finished.
-	
-	
-}
-
-Interface.isInterface = function( meta, callback ){
-	//: This function will only check for basic interface format.
-	function verify( ){
-		if( meta._isVerifiedBasicInterface ){
-			return true;
-		}
-		for( var key in meta ){
-			//: Check if the configuration is correct.
-			//: We check the name of the function if it is a class type.
-			if( ( !( ~"boolean|number|string|object|function|null|undefined"
-					.indexOf( meta[ key ] ) )
-					&& typeof meta[ key ] != "string" )
-				|| ( typeof meta[ key ] != "function"
-					&& !( meta[ key ].name.substring( 0, 1 )
-						.match( /[A-Z]/ ) || [] ).length ) )
-			{
-				//: For every invalid key we return false.
-				return false;
-			}
-		}
-		return true;
-	}
-	if( !callback ){
-		return verify( );
-	}else{
-		return ( function( config ){
-			callback( verify( ) );
-		} );
-	}
-};
-Interface.prototype.isInterface = Interface.isInterface;
-var verifyInterface = Interface.isInterface;
-
-
-Interface.prototype.set = function( key, type, callback ){
-	//: Set let's you assign new type.
-	var self = this;
-	function set( config ){
-		key = config.key || key;
-		type = config.type || type;
-		callback = config.callback || callback;
-		//: TODO: Add a verification here.
-		self.meta[ key ] = type;
-		if( callback ){
-			return callback( true );
-		}
-		return true;
-	}
-	if( callback ){
-		return set;
-	}
-	return set( );
-};
-
-Interface.prototype.get = function( key, callback ){
-	var self = this;
-	function get( config ){
-		key = config.key || key;
-		callback = config.callback || callback;
-		if( callback ){
-			return callback( self.meta[ key ] );
-		}
-		return self.meta[ key ];
-	}
-	if( callback ){
-		return get;
-	}
-	return get( );
-};
-
-Interface.prototype.configure = function( key, configuration, callback ){
-	
-};
-
-
-
-Interface.prototype.has = function( metaType, key, callback ){
-	
-};
-
-Interface.prototype.is = function( metaType, key, callback ){
-	
-};
-
-Interface.prototype.getConfiguration = function( type, callback ){
-	
-};
-//:	================================================================================================
-
-//:	================================================================================================
 function inspectType( value, verbose ){
     try{
         //: Turn the verbosity off, true by default
@@ -2110,3 +1811,358 @@ console.log( "Run successful" );
 
 
 
+
+//:	================================================================================================
+function Interface( configuration ){
+	/*:
+		Interface format convention
+		
+		The interface is an object stating the meta types and configuration of the parameter.
+		The interface contains general methods for only accessing and manipulating
+			the meta properties. It does not understand the usage of these properties.
+		It is not the responsibility of the function to determine if your
+			configuration is correct at 100%. The function will only check
+			the format of the configuration as well as the basic format.
+			
+		It is compose of the following components in JSON formatted structure:
+		
+		{
+			key|":optional":type|Class|subtypes|settings
+		}
+		
+			The key can have an optional feature appended.
+			{
+				"color:optional":number
+			}
+		
+			The type can be any of the following types:
+			1. number
+			2. boolean
+			3. null
+			4. undefined
+			5. string
+			6. object
+			7. function
+			
+			Class can be any class like:
+			[*] Array
+			[*] Date
+		
+			Subtypes are special types appended to types or class.
+				When the type or class has a subtype it must be in this format
+			
+			This configuration states that the date can be by default Date or 
+				a date in string format and should be converted to Date type
+			{
+				"date":"Date:string"
+			}
+			
+			
+			Mixed subtypes can be like this:
+			
+			This configuration states that the date can be a number or a string
+				but should be converted to Date type
+			{
+				"date":"Date:string|number"
+			}
+			
+			
+			None default mixed subtypes can be like this:
+			
+			This configuration states that the date can be either Date, number or string.
+			{
+				"date":"Date|string|number"
+			}
+			
+			
+			Optional subtype can be like this:
+			
+			This configuration states that the Date type is optional 
+				and is possible for deprecation.
+			{
+				"date":"Date;optional|string|number"
+			}
+			
+			
+			Null vs Undefined subtype:
+			
+			A null subtype means that the initial value of the property is nothing.
+			An undefined subtype means that the key can be there or not.
+			The difference between an optional key and an undefined typed key
+				is that, optional key cannot be an undefined typed key.
+			
+			
+			Case of arrays:
+			
+			An array subtype can be like this:
+			{
+				"dates":"Array-Date|string|number"
+			}
+			This configuration states that the key "dates" can be an array of 
+				(denoted by - sign) Date, string or number type.
+			All Array class types are bounded to the Array class.
+				Therefore, no other subtypes follows any Array class type
+			
+			
+			Case of generics:
+			
+			Interface has support for generics, they are object of general
+				types but can contain several types either defined before
+				or during runtime.
+			A general type can be a single child or parent type or
+				can have multiple child or parent types.
+				It must also support types declared at runtime and wildcards.
+				
+				Single generic type:
+				{
+					"myobject":"ThisClass-Date"
+				}
+				This configuration states that, ThisClass can only
+					contain Date class.
+				
+				Single generic type with boundaries:
+				{
+					"myobject":"ThisClass-Date;child"
+				}
+				This configuration states that, ThisClass can only
+					contain anything that is a child of Date class.
+				
+				{
+					"myobject":"ThisClass-Date;parent"
+				}
+				This configuration states that, ThisClass can only
+					contain anything that is a parent of Date class.
+				
+				
+				Wildcard and runtime types:
+				{
+					"myobject":"ThisClass-T?"
+				}
+				This configuration states that, ThisClass can have a
+					type T and this is unknown at compile time.
+				
+				{
+					"myobject":"T?"
+				}
+				This configuration states that, a certain class T
+					exists but not identified.
+				
+				{
+					"myobject":"ThisClass-*"
+				}
+				This configuration states that, ThisClass can have
+					different types and is unknown at compile time.
+			
+			
+			Settings:
+			
+			Settings are self imposed configuration. It may affect the flow
+				of the function or anything that manipulates the entity.
+				But it should not affect the whole application.
+				They are extremely localized configuration.
+			All settings format are denoted by the prefix ":" colon.	
+			
+			
+			
+			The configuration parameter composed of the basic
+				key-type interface format.
+	*/
+	
+	if( !this.isInterface( configuration ) ){
+		throw {
+			name: "error:Interface",
+			input: null,
+			message: "invalid basic interface configuration parameter on initialization",
+			tracePath: null,
+			date: Date.now( )
+		};
+	}
+	//: We will clone the basic format configuration here.
+	//: The interface configuration passed the verification.
+	this.meta = { 
+		_isVerifiedBasicInterface: true,
+		_basicConfiguration: configuration,
+		_intermediateConfiguration: {},
+		_decomposedConfiguration: {}
+	};
+	var hasDefault = false;
+	var hasArray = false;
+	//var hasGeneric = false;
+	var connector = "";
+	//: We will run the key to the first interface transformation procedure.
+	for( var key in configuration ){
+		this.meta[ key ] = configuration[ key ].split( "|" );
+		hasDefault = false;
+		hasArray = false;
+		for( var index in this.meta[ key ] ){
+			if( !!~this.meta[ key ][ index ].indexOf( ":" ) ){
+				hasDefault = true;
+			}else if( !!~this.meta[ key ][ index ].indexOf( "-" )
+				&& !!~this.meta[ key ][ index ].indexOf( "Array" ) )
+			{
+				hasArray = true;
+			}else if( index ){
+				if( hasDefault ){
+					connector = ":";
+				}else if( hasArray ){
+					connector = "-";
+				}
+				//: TODO: Support for generics here?
+				if( connector ){
+					this.meta[ key ][ index ] = this.meta[ key ][ 0 ].split( connector )[ 0 ] 
+						+ connector + this.meta[ key ][ index ];
+				}	
+			}
+		}
+		//: We store every configuration format.
+		this.meta._intermediateConfiguration[ key ] = this.meta[ key ];
+	}
+	//: The intermediate format interface is finished.
+	
+	
+}
+
+Interface.isInterface = function( meta, callback ){
+	//: This function will only check for basic interface format.
+	function verify( ){
+		if( meta._isVerifiedBasicInterface ){
+			return true;
+		}
+		for( var key in meta ){
+			//: Check if the configuration is correct.
+			//: We check the name of the function if it is a class type.
+			if( ( !( ~"boolean|number|string|object|function|null|undefined"
+					.indexOf( meta[ key ] ) )
+					&& typeof meta[ key ] != "string" )
+				|| ( typeof meta[ key ] != "function"
+					&& !( meta[ key ].name.substring( 0, 1 )
+						.match( /[A-Z]/ ) || [] ).length ) )
+			{
+				//: For every invalid key we return false.
+				return false;
+			}
+		}
+		return true;
+	}
+	if( !callback ){
+		return verify( );
+	}else{
+		return ( function( config ){
+			callback( verify( ) );
+		} );
+	}
+};
+Interface.prototype.isInterface = Interface.isInterface;
+var verifyInterface = Interface.isInterface;
+
+
+Interface.prototype.set = function( key, type, callback ){
+	//: Set let's you assign new type.
+	var self = this;
+	function set( config ){
+		key = config.key || key;
+		type = config.type || type;
+		callback = config.callback || callback;
+		//: TODO: Add a verification here.
+		self.meta[ key ] = type;
+		if( callback ){
+			return callback( true );
+		}
+		return true;
+	}
+	if( callback ){
+		return set;
+	}
+	return set( );
+};
+
+Interface.prototype.get = function( key, callback ){
+	var self = this;
+	function get( config ){
+		key = config.key || key;
+		callback = config.callback || callback;
+		if( callback ){
+			return callback( self.meta[ key ] );
+		}
+		return self.meta[ key ];
+	}
+	if( callback ){
+		return get;
+	}
+	return get( );
+};
+
+Interface.prototype.configure = function( key, configuration, callback ){
+	
+};
+
+
+
+Interface.prototype.has = function( metaType, key, callback ){
+	
+};
+
+Interface.prototype.is = function( metaType, key, callback ){
+	
+};
+
+Interface.prototype.getConfiguration = function( type, callback ){
+	
+};
+//:	================================================================================================
+
+//:	================================================================================================
+Object.construct = function( entity, meta, callback ){
+	
+};
+
+Object.prototype.set = function( key, value, type, callback ){
+	
+};
+
+Object.prototype.get = function( key, type, callback ){
+	
+};
+
+Object.prototype.merge = function( entity, callback ){
+	
+};
+
+Object.prototype.is = function( ){
+	
+};
+
+Object.prototype.has = function( ){
+	
+};
+
+Object.prototype.equals = function( ){
+	
+};
+//:	================================================================================================
+
+//:	================================================================================================
+function Binding( ){
+	
+}
+
+Binding.prototype.bind = function( ){
+	
+};
+
+Binding.prototype.unbind = function( ){
+	
+};
+
+Binding.prototype.listen = function( ){
+	
+};
+
+Binding.prototype.ignore = function( ){
+	
+};
+
+Binding.prototype.on = function( ){
+	
+};
+//:	================================================================================================
