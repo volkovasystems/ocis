@@ -29,7 +29,43 @@ var _ = {
 //:	================================================================================================
 
 //:	================================================================================================
-/*
+function constructBasicError( error, input, date, location, callback ){
+	//: This will create a new Error instance.
+	function construct( ){
+		//: If the location is a custom location or try to identify it.
+		location = ( typeof location == "string" )? location 
+			: ( location.name 
+				|| constructBasicError.caller.name 
+				|| location.toString( ) );
+		//: Construct the basic error format.
+		return new Error( JSON.stringify( {
+			name: "error:" + location,
+			input: _.util.inspect( input, true ),
+			message: error.message,
+			location: error.stack || location,
+			date: date
+		} ) );
+	}
+	if( callback ){
+		return ( function( config ){
+			//: Override using the configuration.
+			error = ( config || {} ).error || error;
+			input = ( config || {} ).input || input;
+			date = ( config || {} ).date || date || Date.now( );
+			location = ( config || {} ).location;
+			//: If we want to override the callback.
+			callback = ( config || {} ).callback || callback;
+			//: Return using the callback.
+			callback( construct( ) );
+		} );
+	}
+	//: We don't have a callback, just return normally.
+	return construct( );
+}
+//:	================================================================================================
+
+//:	================================================================================================
+/*:
 	@methodinfo-start:
 		@title: "Deep Clone Function"
 		@title-end:true
@@ -117,11 +153,19 @@ function cloneEntity( entity, callback ){
 			
 			//: Reduce error explosion
 			if( !entity || !callback ){
-				return null;
+				throw constructBasicError( new Error( "invalid parameters" ), 
+					entity, 
+					Date.now( ), 
+					cloneEntity, 
+					callback )( );
 			}
 			
+			//: This function is for cloning arrays.
 			function cloneArray( element, callback ){
-				//: Clone element that is either, array or object type.
+				/*: 
+					Clone element that is either, array or object type.
+					Check also if the object is a function.
+				*/
 				if( typeof element == "function" ){
 					cloneFunction( element, callback );
 				}else if( element instanceof Array || typeof element == "object" ){
@@ -134,6 +178,7 @@ function cloneEntity( entity, callback ){
 				}
 			}
 
+			//: This function is for cloning objects.
 			function cloneObject( entity, key, callback ){
 				//: Clone entity with the specified key.
 				if( typeof entity[ key ] == "function" ){
@@ -148,12 +193,20 @@ function cloneEntity( entity, callback ){
 				}
 			}
 			
+			//: Clone the function type object
 			function cloneFunction( method, callback ){
-				//: Clone the function type object
+				/*:
+					In case that the function is a native function,
+						we don't have to clone it.
+				*/
+				if( method.toString( ).indexOf( "[native code]" ) ){
+					return callback( method );
+				}
+				
 				/*:
 					First we need to create the method ID.
 					The method ID will be used to identify the function 
-						out of many functions to be created.
+						out of many functions to be created.	
 				*/
 				var methodID = _.crypto.createHash( "md5" )
 					.update( method.toString( ) + ":" + _.uuid.v4( ), "utf8" )
@@ -170,7 +223,11 @@ function cloneEntity( entity, callback ){
 						"exports._" + methodID + "=" + method.toString( ),
 						function( error ){
 							if( error ){
-								return callback( error );
+								return constructBasicError( error, 
+									entity, 
+									Date.now( ), 
+									cloneEntity, 
+									callback )( );
 							}
 							//: Return the fresh function.
 							method = require( "./" + methodID + ".js" )[ "_" + methodID ];
@@ -184,9 +241,13 @@ function cloneEntity( entity, callback ){
 				
 				//: We want to clone the locals.
 				if( method.locals ){
+					/*:
+						Developers should attach all locals to the function's "locals"
+							variable.
+					*/
 					cloneEntity( method.locals, 
-						function( locals ){
-							persistFunction( locals );
+						function( clonedLocals ){
+							persistFunction( clonedLocals );
 						} );
 					return;
 				}
@@ -207,25 +268,33 @@ function cloneEntity( entity, callback ){
 					},
 					function( error, functions ){
 						if( error ){
-							return callback( error );
+							return constructBasicError( error, 
+								entity, 
+								Date.now( ), 
+								cloneEntity, 
+								callback )( );
 						}
 						_.async.parallel( functions,
 							function( error, cloned ){
-								callback( error || cloned );
+								if( error ){
+									return constructBasicError( error, 
+										entity, 
+										Date.now( ), 
+										cloneEntity, 
+										callback )( );
+								}
+								callback( cloned );
 							} );
 					} );
 			}else if( typeof entity == "object" ){
-				var keys = Object.keys( entity );
 				var clone = { };
-				_.async.map( keys,
+				_.async.map( Object.keys( entity ),
 					function( key, done ){
 						done( null,
 							function( cache ){
 								cloneObject( entity,
 									key,
 									function( cloned ){
-										console.log( "Key: " + key );
-										console.log( "Cloned: " + _.util.inspect( cloned ) );
 										clone[ key ] = cloned;
 										cache( null );
 									} );
@@ -233,11 +302,22 @@ function cloneEntity( entity, callback ){
 					},
 					function( error, functions ){
 						if( error ){
-							return callback( error );
+							return constructBasicError( error, 
+								entity, 
+								Date.now( ), 
+								cloneEntity, 
+								callback )( );
 						}
 						_.async.parallel( functions,
 							function( error ){
-								callback( error || clone );
+								if( error ){
+									return constructBasicError( error, 
+										entity, 
+										Date.now( ), 
+										cloneEntity, 
+										callback )( );
+								}
+								callback( clone );
 							} );
 					} );
 			}else{
@@ -245,13 +325,11 @@ function cloneEntity( entity, callback ){
 			}
 		} );
 	}catch( error ){
-		throw {
-			name: "error:cloneEntity",
-			input: null,
-			message: error.message,
-			tracePath: null,
-			date: Date.now( )
-		};
+		throw constructBasicError( error, 
+			entity, 
+			Date.now( ), 
+			cloneEntity, 
+			callback )( );
 	}
 }
 // @method-end:true
@@ -1026,24 +1104,23 @@ function isDotNotated( object, callback ){
         cloneEntity( object,
             function( clone ){
                 inspectTypes( clone, false,
-                    function( leveltypes, typestat ){
-                        callback( !~Object.keys( typestat ).indexOf( "object" )
-                            || !~Object.keys( typestat ).indexOf( "function" ) );
+                    function( levelTypes, typeStatistics ){
+                        callback( !~Object.keys( typeStatistics ).indexOf( "object" )
+                            || !~Object.keys( typeStatistics ).indexOf( "function" ) );
                 } )( );
             } );        
     }catch( error ){
-        throw {
-            name: "error:isDotNotated",
-            message: error.message,
-            tracePath: null,
-            date: Date.now( )
-        };
+    	throw constructBasicError( error, 
+			object, 
+			Date.now( ), 
+			isDotNotated, 
+			callback )( );
     }
 }
 //:	================================================================================================
 
 //:	================================================================================================
-function indexOf( entity, search, origin, index, startat, callback ){
+function indexOf( entity, search, origin, index, starting, callback ){
     /*:
         Complex indexOf function for extracting indexes in either object, array or string.
             It can also extract the specified entity starting from a specified index of 
@@ -1053,34 +1130,38 @@ function indexOf( entity, search, origin, index, startat, callback ){
             [*] object
             [*] array
             [*] string
-        Search can be a string, hash ID, regular expression, or dot notated key.
+            
+        Search can be a string, hash ID, regular expression.
             [*] string
                 If the search is a verified normal string, it will always denote
                     a key or value (if the key's value is a string
                     or if converted to string matches the search) iff the entity is an object.
                 It will denote a string token if the entity is a string.
                 It will denote a value match if the entity is an array.
-            [*] hashid
+            [*] hash ID
                 If the string contains tilde(~) followed by 32 characters followed 
                     by colon(:) then another 32 characters. Then the string is 
-                    a hashed entity ID. This will search for matching hash IDs.                    
-            [*] dot.notated.key
-                
+                    a hashed entity ID. This will search for matching hash IDs.
             [*] regex
+            
+   
         Origin can be start and end. It denotes what is the flow of the search.
             By default the origin is true, if the origin is false then start it at the end.
         
-        Index denotes that cut the terminals starting from that index and disregard that token.
+        Index denotes that it should cut the terminals starting from that index 
+        	and disregard that token.
+        	
+    	Starting denotes the starting point of the search. This can be an index or a key.
     */
     cloneEntity( entity,
-        function( clone ){
-            inspectTypes( clone,
-                function( leveltypes, typestat ){
-                    if( typeof leveltypes == "string" ){
+        function( clonedEntity ){
+            inspectTypes( clonedEntity,
+                function( levelTypes, typeStatistics ){
+                    if( typeof levelTypes == "string" ){
                         //: We will now only accept string token, and regex
                         if( search instanceof RegExp || typeof search == "string" ){
-                            if( ( startat !== null || startat!== undefined ) 
-                                && typeof startat == "number" )
+                            if( ( starting !== null || starting!== undefined ) 
+                                && typeof starting == "number" )
                             {
                                 //var tokens = entity.split( search );
                                 
@@ -2163,6 +2244,16 @@ Binding.prototype.ignore = function( ){
 };
 
 Binding.prototype.on = function( ){
+	
+};
+//:	================================================================================================
+
+//:	================================================================================================
+Function.prototype.to = function( ){
+	
+};
+
+Function.prototype.configure = function( ){
 	
 };
 //:	================================================================================================
