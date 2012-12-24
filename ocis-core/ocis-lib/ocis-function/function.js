@@ -29,42 +29,6 @@ var _ = {
 //:	================================================================================================
 
 //:	================================================================================================
-function constructBasicError( error, input, date, location, callback ){
-	//: This will create a new Error instance.
-	function construct( ){
-		//: If the location is a custom location or try to identify it.
-		location = ( typeof location == "string" )? location 
-			: ( location.name 
-				|| constructBasicError.caller.name 
-				|| location.toString( ) );
-		//: Construct the basic error format.
-		return new Error( JSON.stringify( {
-			name: "error:" + location,
-			input: _.util.inspect( input, true ),
-			message: error.message,
-			location: error.stack || location,
-			date: date
-		} ) );
-	}
-	if( callback ){
-		return ( function( config ){
-			//: Override using the configuration.
-			error = ( config || {} ).error || error;
-			input = ( config || {} ).input || input;
-			date = ( config || {} ).date || date || Date.now( );
-			location = ( config || {} ).location;
-			//: If we want to override the callback.
-			callback = ( config || {} ).callback || callback;
-			//: Return using the callback.
-			callback( construct( ) );
-		} );
-	}
-	//: We don't have a callback, just return normally.
-	return construct( );
-}
-//:	================================================================================================
-
-//:	================================================================================================
 /*:
 	@methodinfo-start:
 		@title: "Deep Clone Function"
@@ -109,56 +73,23 @@ function constructBasicError( error, input, date, location, callback ){
 */
 //	@method-start:
 function cloneEntity( entity, callback ){
-	/*:
-		The try-catch here is the first line of error defense.
-		I'm planning to create layers of error defense.
-
-		(This layers of error defense is documented here.)
-
-		Level 1: Function Error Try-Catch
-			This is the try-catch employed on the function itself.
-			This will serve as the first line of defense.
-		Level 2: Pre-Post Error Try-Catch
-			This is a sophisticated error catching mechanism for pre-post function wrapper.
-			This will serve as the second line of defense and in partner
-				with the uncaught error capture.
-			In this stage, it will cache the state of error.
-
-			State of error has 5 components:
-				[*] Error name
-				[*] Input
-				[*] Stack trace/ trace path
-				[*] Error message
-				[*] Date occured
-
-			If the same error state is achieved, the pre-post wrapper will activate the
-				self healing feature enabling blockage of function call and firing
-				a functional event "method call blocked due to reoccuring error"
-
-		Level 3: Uncaught Error Capture
-			The third line of defense for capturing uncaught errors.
-		Level X: Self Healing on Error
-			This will attempt to correct the input and recall the method, if not the input
-				will be blocked.
-	*/
+	
 	try{
 		return ( function( config ){
-			
-			//: Prepare the function to be less error prone
-			if( config || !entity || !callback ){
-				//: We provide alternatives if entity or callback is not existing
-				entity = ( config || {} ).entity || entity;
-				calllback = ( config || {} ).callback || callback;
+
+			//: Override parameters.
+			entity = config.entity || entity;
+			callback = config.callback || callback;
+
+			//: Do not do anything if no parameters.
+			if( !entity || !callback || typeof entity != "object" ){
+				throw Error.construct( { error: "invalid parameters" } );
 			}
-			
-			//: Reduce error explosion
-			if( !entity || !callback ){
-				throw constructBasicError( new Error( "invalid parameters" ), 
-					entity, 
-					Date.now( ), 
-					cloneEntity, 
-					callback )( );
-			}
+
+			//: Try faster cloning.
+			try{
+				callback( JSON.parse( JSON.stringify( entity ) ) );
+			}catch( error ){ }
 			
 			//: This function is for cloning arrays.
 			function cloneArray( element, callback ){
@@ -168,7 +99,9 @@ function cloneEntity( entity, callback ){
 				*/
 				if( typeof element == "function" ){
 					cloneFunction( element, callback );
-				}else if( element instanceof Array || typeof element == "object" ){
+				}else if( element instanceof Array 
+					|| typeof element == "object" )
+				{
 					cloneEntity( element,
 						function( cloned ){
 							callback( cloned );
@@ -183,7 +116,9 @@ function cloneEntity( entity, callback ){
 				//: Clone entity with the specified key.
 				if( typeof entity[ key ] == "function" ){
 					cloneFunction( entity[ key ], callback );
-				}else if( typeof entity[ key ] == "object" || entity[ key ] instanceof Array ){
+				}else if( typeof entity[ key ] == "object" 
+					|| entity[ key ] instanceof Array )
+				{
 					cloneEntity( entity[ key ],
 						function( cloned ){
 							callback( cloned );
@@ -193,7 +128,7 @@ function cloneEntity( entity, callback ){
 				}
 			}
 			
-			//: Clone the function type object
+			//: Clone the function type object.
 			function cloneFunction( method, callback ){
 				/*:
 					In case that the function is a native function,
@@ -214,36 +149,59 @@ function cloneEntity( entity, callback ){
 				
 				//: We created this function so that we will not do the same procedure twice.
 				function persistFunction( locals ){
-					/*:
-					 	We will write the function to a temporary file using 
-					 		the method ID as the file name and the variable
-					 		name of the function.
-					*/
-					_.fs.writeFile( methodID + ".js", 
-						"exports._" + methodID + "=" + method.toString( ),
-						function( error ){
-							if( error ){
-								return constructBasicError( error, 
-									entity, 
-									Date.now( ), 
-									cloneEntity, 
-									callback )( );
-							}
-							//: Return the fresh function.
-							method = require( "./" + methodID + ".js" )[ "_" + methodID ];
-							//: Append the locals if there are any locals.
-							method.locals = locals;
-							callback( method );
-							//: Delete the temporary file.
-							_.fs.unlink( "./" + methodID + ".js" );
-						} );
+					
+
+					//: Try to retrieve the global path.
+					var path = ( ( ( ocis || { } )
+						.environment || { } )
+						.reference || { } )
+						.path || config.path || "";
+
+					function writeFunction( ){
+						/*:
+						 	We will write the function to a temporary file using 
+						 		the method ID as the file name and the variable
+						 		name of the function.
+						*/
+						_.fs.writeFile( path + methodID + ".js", 
+							"exports._" + methodID + "=" + method.toString( ),
+							function( error ){
+								if( error ){
+									return callback( Error.construct( error ) );
+								}
+								//: Return the fresh function.
+								method = require( "./" + methodID + ".js" )[ "_" + methodID ];
+								//: Append the locals if there are any locals.
+								method.locals = locals;
+								callback( method );
+								//: Delete the temporary file.
+								_.fs.unlink( "./" + methodID + ".js" );
+							} );
+					}
+
+					//: Use the override path.
+					if( path ){
+						//: Check the path.
+						_.fs.stat( path,
+							function( error, fileStatistics ){
+								if( error ){
+									return callback( Error.construct( error ) );
+								}
+								if( !fileStatistics.isDirectory( ) ){
+									path = "";
+								}
+								writeFunction( );
+							} );
+						return;
+					}
+					writeFunction( );
 				}
 				
 				//: We want to clone the locals.
 				if( method.locals ){
 					/*:
-						Developers should attach all locals to the function's "locals"
-							variable.
+						Developers should attach all locals to 
+							the function's "locals" variable.
 					*/
 					cloneEntity( method.locals, 
 						function( clonedLocals ){
@@ -268,20 +226,12 @@ function cloneEntity( entity, callback ){
 					},
 					function( error, functions ){
 						if( error ){
-							return constructBasicError( error, 
-								entity, 
-								Date.now( ), 
-								cloneEntity, 
-								callback )( );
+							return callback( Error.construct( error ) );
 						}
 						_.async.parallel( functions,
 							function( error, cloned ){
 								if( error ){
-									return constructBasicError( error, 
-										entity, 
-										Date.now( ), 
-										cloneEntity, 
-										callback )( );
+									return callback( Error.construct( error ) );
 								}
 								callback( cloned );
 							} );
@@ -292,8 +242,7 @@ function cloneEntity( entity, callback ){
 					function( key, done ){
 						done( null,
 							function( cache ){
-								cloneObject( entity,
-									key,
+								cloneObject( entity, key,
 									function( cloned ){
 										clone[ key ] = cloned;
 										cache( null );
@@ -302,20 +251,12 @@ function cloneEntity( entity, callback ){
 					},
 					function( error, functions ){
 						if( error ){
-							return constructBasicError( error, 
-								entity, 
-								Date.now( ), 
-								cloneEntity, 
-								callback )( );
+							return callback( Error.construct( error ) );
 						}
 						_.async.parallel( functions,
 							function( error ){
 								if( error ){
-									return constructBasicError( error, 
-										entity, 
-										Date.now( ), 
-										cloneEntity, 
-										callback )( );
+									return callback( Error.construct( error ) );
 								}
 								callback( clone );
 							} );
@@ -325,11 +266,7 @@ function cloneEntity( entity, callback ){
 			}
 		} );
 	}catch( error ){
-		throw constructBasicError( error, 
-			entity, 
-			Date.now( ), 
-			cloneEntity, 
-			callback )( );
+		throw Error.construct( error );
 	}
 }
 // @method-end:true
@@ -391,17 +328,11 @@ function hashEntity( identity, callback ){
 					: "" ); //: Do nothing
 
 		if( callback ){
-			callback( result );
+			return callback( result );
 		}
 		return result;
 	}catch( error ){
-		throw {
-			name: "error:hashEntity",
-			input: _.util.inspect( arguments, true, 5 ),
-			message: error.message,
-			tracePath: null,
-			date: Date.now( )
-		};
+		
 	}
 }
 //	@method-end:true
@@ -444,20 +375,20 @@ function hashEntity( identity, callback ){
 //  @method-start:
 function hashIdentity( object, callback ){
 	try{
+		var entity = ( typeof object == "function" )? 
+			object.toString( ) 
+			: _.util.inspect( object );
+		
 		var result = _.crypto.createHash( "md5" )
-			.update( _.util.inspect( object ), "utf8" )
+			.update( entity, "utf8" )
 			.digest( "hex" ).toString( );
+		
 		if( callback ){
-			callback( result );
+			return callback( result );
 		}
 		return result;
 	}catch( error ){
-		throw {
-			name: "error:hashIdentity",
-			message: error.message,
-			tracePath: null,
-			date: Date.now( )
-		};
+		throw Error.construct( error );
 	}
 }
 //  @method-end:true
@@ -506,65 +437,62 @@ function hashIdentity( object, callback ){
 	@method:
 */
 function hashObject( object, strict, callback ){
-	return ( function( config ){
-		
-		//: Prepare the function to be less error prone
-		if( config || !object || !callback ){
-			//: We provide alternatives if parameters are not existing
-			object = ( config || {} ).object || object;
-			calllback = ( config || {} ).callback || callback;
-		}
-		
-		//: Reduce error explosion
-		if( !object || !callback ){
-			return null;
-		}
-		
-		//: This is not an object, do nothing.
-		if( typeof object != "object" ){
-			return callback( );
-		}
+	try{
+		return ( function( config ){
+			//: Override parameter values.
+			object = config.object || object;
+			strict = config.strict || strict;
+			callback = config.callback || callback;
 
-		var keys = Object.keys( object );
-		//: Do we have more keys?
-		if( keys.length ){
-			//: Create the key and supply the hash ID.
-			object[ "@hashid" ] = ( strict )? hashIdentity( object ) //: Hash without random values
-				: hashEntity( hashIdentity( object ) ); //: Hash with random values
-			//: Traverse all objects
-			_.async.forEach( keys,
-				function( key, done ){
-					if( object[ key ] instanceof Array ){
-						_.async.forEach( object[ key ],
-							function( element, done2 ){
-								hashObject( element, strict,
-									function( ){
-										done2( );
-									} )( );
-							},
-							function( error ){
-								done( );
-							} );
-					}else if( typeof object[ key ] == "object" ){
-						hashObject( object[ key ], strict,
-							function( ){
-								done( );
-							} )( );
-					}else{
-						done( );
-					}
-				},
-				function( error ){
-					callback( object );
-				} );
-		}else if( typeof object == "object" ){
-			//: This is a single key object.
-			object[ "@hashid" ] = ( strict )? hashIdentity( object )
-				: hashEntity( hashIdentity( object ) );
-
-			callback( object );
-		}
-	} );
+			function generateHash( ){
+				object[ "@hashUID" ] = hashEntity( hashIdentity( object ) );
+				if( strict && !object[ "@hashID" ] ) object[ "@hashID" ] = hashIdentity( object );
+			}
+			
+			function hash( entity, callback ){
+				try{
+					hashObject( entity, strict,
+						function( error ){
+							callback( error );
+						} )( );
+				}catch( error ){
+					callback( error );
+				}
+			}
+			var keys = Object.keys( object );
+			//: Do we have more keys?
+			if( keys.length ){
+				//: Create the key and supply the hash ID.
+				generateHash( );
+				//: Traverse all objects.
+				_.async.forEach( keys,
+					function( key, doneHashing ){
+						if( object[ key ] instanceof Array ){
+							_.async.forEach( object[ key ],
+								function( element, doneHashing ){
+									hash( element, doneHashing );
+								},
+								function( error ){
+									doneHashing( error );
+								} );
+						}else if( typeof object[ key ] == "object" ){
+							hash( object[ key ], doneHashing );
+						}else{
+							doneHashing( error );
+						}
+					},
+					function( error ){
+						callback( error || object );
+					} );
+			}else if( typeof object == "object" ){
+				//: This is a single key object.
+				generateHash( );
+				callback( object );
+			}
+		} );
+	}catch( error ){
+		throw Error.construct( error );
+	}
 }
 // @method-end:true
 //:	================================================================================================
@@ -2199,11 +2127,68 @@ Object.construct = function( entity, meta, callback ){
 
 Object.prototype.set = function( key, value, type, callback ){
 	
+	var self = this;
+	
+	function set( config ){
+		var property = config.property || "property";
+		try{
+			if( property === "property" ){
+				( self[ property ] = self[ property ] || {} )[ key ] = {
+						value: value,
+						type: type || inspectType( value )
+				};
+			}else{
+				self[ property ] = config.value || value;
+			}
+			
+			if( callback ){
+				callback( this );
+			}
+		}catch( error ){
+		}
+	}
+	
+	
+	return this;
 };
 
 Object.prototype.get = function( key, type, callback ){
+	var self = this;
+	var neededData;
+	
+	function get( config ){
+		try{
+			neededData = self.data[ key ];
+			if( type ){
+				if( neededData.type == type ){
+					callback( neededData, self );
+					return neededData;
+				}
+				callback( null, self );
+				return null;
+			}
+			callback( neededData, self );
+			return neededData;
+		}catch( error ){	
+		}
+	}
+	
+	get.self = self;
+	
+	return get;
+};
+
+Object.prototype.as = function( ){
 	
 };
+
+Object.prototype.to = function( ){
+	
+};
+
+Object.prototype.clone = function( ){
+	
+}
 
 Object.prototype.merge = function( entity, callback ){
 	
@@ -2220,6 +2205,19 @@ Object.prototype.has = function( ){
 Object.prototype.equals = function( ){
 	
 };
+
+Object.prototype.persist = function( ){
+	
+}
+
+Object.prototype.explode = function( ){
+	
+}
+
+Object.prototype.implode = function( ){
+	
+}
+
 //:	================================================================================================
 
 //:	================================================================================================
@@ -2257,3 +2255,81 @@ Function.prototype.configure = function( ){
 	
 };
 //:	================================================================================================
+
+
+
+//:	================================================================================================
+/*var _Error = Error;
+
+function constructBasicError( error, callback ){
+	
+	//: First we get the location and input and set the date of this call.
+	var location = constructBasicError.caller;
+	var input = constructBasicError.caller.arguments;
+	var date = Date.now( );
+	
+	//: This will create a new Error instance.
+	function construct( ){
+		//: If the location is a custom location or try to identify it.
+		location = ( typeof location == "string" )? location 
+			: ( location.name || location.toString( ) );
+		//: Construct the basic error format.
+		return new Error( JSON.stringify( {
+			name: "error:" + location,
+			input: _.util.inspect( input, true ),
+			message: error.message,
+			location: error.stack || location,
+			date: date
+		} ) );
+	}
+	if( callback ){
+		return ( function( config ){
+			//: Override using the configuration.
+			error = ( config || {} ).error || error;
+			input = ( config || {} ).input || input;
+			date = ( config || {} ).date || date;
+			location = ( config || {} ).location;
+			//: If we want to override the callback.
+			callback = ( config || {} ).callback || callback;
+			//: Return using the callback.
+			callback( construct( ) );
+		} );
+	}
+	//: We don't have a callback, just return normally.
+	return construct( );
+}
+constructBasicError.prototype = _Error;
+*/
+//:	================================================================================================
+/*:
+The try-catch here is the first line of error defense.
+I'm planning to create layers of error defense.
+
+(This layers of error defense is documented here.)
+
+Level 1: Function Error Try-Catch
+	This is the try-catch employed on the function itself.
+	This will serve as the first line of defense.
+Level 2: Pre-Post Error Try-Catch
+	This is a sophisticated error catching mechanism for pre-post function wrapper.
+	This will serve as the second line of defense and in partner
+		with the uncaught error capture.
+	In this stage, it will cache the state of error.
+
+	State of error has 5 components:
+		[*] Error name
+		[*] Input
+		[*] Stack trace/ trace path
+		[*] Error message
+		[*] Date occured
+
+	If the same error state is achieved, the pre-post wrapper will activate the
+		self healing feature enabling blockage of function call and firing
+		a functional event "method call blocked due to reoccuring error"
+
+Level 3: Uncaught Error Capture
+	The third line of defense for capturing uncaught errors.
+Level X: Self Healing on Error
+	This will attempt to correct the input and recall the method, if not the input
+		will be blocked.
+*/
