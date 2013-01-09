@@ -375,6 +375,7 @@ function hashEntity( identity, callback ){
 //  @method-start:
 function hashIdentity( object, callback ){
 	try{
+		//: Identification of function is based on the content of the function.
 		var entity = ( typeof object == "function" )? 
 			object.toString( ) 
 			: _.util.inspect( object );
@@ -445,7 +446,9 @@ function hashObject( object, strict, callback ){
 			callback = config.callback || callback;
 
 			function generateHash( ){
+				//: We can change the UID explicitly.
 				object[ "@hashUID" ] = hashEntity( hashIdentity( object ) );
+				//: We don't want to change the hash ID if it is already there.
 				if( strict && !object[ "@hashID" ] ) object[ "@hashID" ] = hashIdentity( object );
 			}
 			
