@@ -89,7 +89,9 @@ function cloneEntity( entity, callback ){
 			//: Try faster cloning.
 			try{
 				callback( JSON.parse( JSON.stringify( entity ) ) );
-			}catch( error ){ }
+			}catch( error ){
+				//: We don't report this.
+			}
 			
 			//: This function is for cloning arrays.
 			function cloneArray( element, callback ){
@@ -502,6 +504,170 @@ function hashObject( object, strict, callback ){
 
 //:	================================================================================================
 /*
+	@title: "Dynamic Push Function"
+	@info:
+		{
+            id: ""
+			method: "push",
+			name: "Dynamic Push Function",
+			author: "Richeve S. Bebedor",
+			status: "stable",
+			version: "0.1",
+			usage: "c",
+			methodtype: "utility",
+			description:
+				"This will interpret the constructed levels from the\n"
+				+ "object per level and transform them again to the\n"
+				+ "original constructs.\n",
+			guide: "practical/common",
+			interface:{
+				entity: "object|array"
+				value: "object|function|array|string|number|boolean"
+				key: "string"
+				callback: "function"
+			}
+			result: [ { name: "entity", type: "object|array" } ],
+			returntype: "double-return/callback",
+			errorhandler: "try-catch/throw",
+			todo: [],
+			xxx: [],
+			revision: [],
+			note: [],
+			comment: [],
+			testcase: "function-test.push",
+			testresult: []
+		}
+	@info-end:true
+	@method:
+*/
+function push( entity, value, key, callback ){
+	try{
+		return ( function( config ){
+			
+			//: Initialize variables.
+			config = config || {};
+			entity = config.entity || entity;
+			value = ( config.value = config.value || value );
+			key = ( config.key = config.key || key );
+			callback = config.callback || callback;
+
+			//: Trap invalid parameters.
+			if( !value || !callback ){
+				throw Error.construct( { error: "invalid parameters" } );
+			}
+
+			//: Initialize configurations.
+			config.depth = config.depth || 0;
+			config.keys = config.keys || ( key || "" ).split( "." ) || [];
+			config.original = config.original || entity;
+
+			var currentKey = config.keys[ config.depth ] || "";
+
+			//: If we identified that the current key denotes an array.
+			if( !!~currentKey.indexOf( ":" )
+				&& entity instanceof Array )
+			{
+				//: Separate everything from the indexes of the levels.
+				config.levels = config.levels 
+					|| currentKey.split( ":" ).toString( ).match( /\d/g );
+				config.level = config.level || 0;
+
+				var currentLevel = config.levels[ config.level ];
+
+				//: Insert levels.
+				if( config.level < config.levels.length - 1 ){
+					config.entity 
+						= entity[ currentLevel ] 
+							|| ( entity[ currentLevel ] = [] );
+					config.level++;
+					push( null, null, null,
+						function( entity ){
+							callback( entity );
+						} )( config );
+				}else{
+					config.depth++;
+					//: Do we have next keys?
+					if( config.depth < config.keys.length ){
+						config.index = currentLevel;
+						//: This is to prevent past levels from mixing with new ones.
+						delete config.levels;
+						delete config.level;
+						push( null, null, null,
+							function( entity ){
+								callback( entity );
+							} )( config );
+						return;
+					}
+					//: This is the last so push the value.
+					config.entity[ currentLevel ] = value;
+					return callback( config.original );
+				}
+			}else if( !!~currentKey.indexOf( "@" ) ){
+				//: If the current key denotes an object.
+
+				if( !entity && !config.depth ){
+					//: If there are no root entities.
+					config.original 
+						= config.entity 
+						= entity 
+						= new ( eval( currentKey.split( "@" )[ 1 ] ) )( );
+				}else if( config.index ){
+					//: If we are pointing to the current property or index.
+					config.entity
+						= config.entity[ config.index ]  
+							|| ( config.entity[ config.index ] 
+								= new ( eval( currentKey.split( "@" )[ 1 ] ) )( ) );
+				}else{
+					//: Normal.
+					config.entity = entity;
+				}
+
+				config.depth++;
+				//: Initialize the next index before pushing next.
+				config.index = ( config.keys[ config.depth ] || "" ).split( ":" )[ 0 ];
+
+				//: If we are dealing with succeeding arrays.
+				if( !!~( config.keys[ config.depth ] || "" ).indexOf( ":" ) ){
+					config.entity = config.entity[ config.index ] 
+						|| ( config.entity[ config.index ] = [] )
+				}
+
+				//: Do we still have more keys?
+				if( config.depth < config.keys.length ){
+					push( null, null, null,
+						function( entity ){
+							callback( entity );
+						} )( config );
+					return;
+				}
+				//: This is the last so return the original.
+				return callback( config.original );
+			}else{
+				//: If the current key denotes a property or an index.
+
+				config.depth++;
+				//: Do we still have more keys?
+				if( config.depth < config.keys.length ){
+					push( null, null, null,
+						function( entity ){
+							callback( entity );
+						} )( config );
+					return;
+				}
+				//: Push the value and return the original.
+				config.entity = entity[ config.index ] = value;
+				return callback( config.original );
+			}
+		} );
+	}catch( error ){
+		throw Error.construct( error );
+	}
+}
+// @method-end:true
+//:	================================================================================================
+
+//:	================================================================================================
+/*
 	@title: "Construct Levels Function"
 	@info:
 		{
@@ -541,102 +707,183 @@ function hashObject( object, strict, callback ){
 	@method:
 */
 function constructLevels( object, minimal, callback ){
-	return ( function( config ){
-		
-		//: Prepare the function to be less error prone
-		if( config || !object || !callback ){
-			//: We provide alternatives if parameters are not existing
-			object = ( config || {} ).object || object;
-			calllback = ( config || {} ).callback || callback;
-		}
-		
-		/*: 
-			If callback is not existing we invalidate the request
-				to this function.
-		*/
-		if( !callback ){
-			return null;
-		}
-		
-		//: Callback exists but there is no request parameters.
-		if( !object ){
-			return callback( );
-		}
-		
-		function minimize( levels ){
-			if( minimal ){
-				for( var key in levels ){
-					if( minimal == "invert" && typeof levels[ key ] != "object" ){
-						delete levels[ key ];
-					}else if( minimal != "invert" && typeof levels[ key ] == "object" ){
-						delete levels[ key ];
+	try{
+		return ( function( config ){
+			
+			//: Override configurations.
+			config = config || {};
+			object = config.object || object;
+			minimal = config.minimal || minimal;
+			callback = config.callback || callback;
+
+			if( !object || !callback ){
+				throw Error.construct( { error: "invalid parameters" } );
+			}
+			
+			config.minimize = config.minimize || function( levels ){
+				if( minimal ){
+					for( var key in levels ){
+						if( typeof levels[ key ] != "object" 
+							&& minimal == "invert" )
+						{
+							delete levels[ key ];
+						}else if( typeof levels[ key ] == "object" 
+							&& minimal != "invert" )
+						{
+							delete levels[ key ];
+						}
 					}
 				}
+			};
+
+			config.current = config.current || "";
+			config.levels = config.levels || {};
+
+			var current = "";
+			if( object instanceof Array ){
+				_.async.forEach( object,
+					function( element, done ){
+						current = config.current + ":" + object.indexOf( element );
+						config.levels[ current ] = element;
+						if( typeof element == "object" ){
+							constructLevels( element, minimal,
+								function( levels ){
+									if( levels instanceof Error ){
+										return done( levels )
+									}
+									done( );
+								} )( {
+									current: current,
+									levels: config.levels,
+									minimize: config.minimize
+								} );
+							return;
+						}
+						done( );
+					},
+					function( error ){
+						if( error ){
+							return callback( Error.construct( error ) );
+						}
+						config.minimize( config.levels );
+						callback( config.levels );
+					} );
+			}else if( typeof object == "object" ){
+				if( object.constructor ){
+					config.current = ( ( config.current )? ( config.current + "." ) : "" ) 
+						+ "@" + object.constructor.name;
+					config.levels[ config.current ] = object.constructor.toString( );
+				}
+				_.async.forEach( Object.keys( object ),
+					function( key, done ){
+						current = config.current + ( ( config.current )? "." : "" ) + key;
+						config.levels[ current ] = object[ key ];
+						if( typeof object[ key ] == "object" ){
+							constructLevels( object[ key ], minimal,
+								function( levels ){
+									if( levels instanceof Error ){
+										return done( levels )
+									}
+									done( );
+								} )( {
+									current: current,
+									levels: config.levels,
+									minimize: config.minimize
+								} );
+							return;
+						}
+						done( );
+					},
+					function( error ){
+						if( error ){
+							return callback( Error.construct( error ) );
+						}
+						config.minimize( config.levels );
+						callback( config.levels );
+					} );
+			}else{
+				callback( );
 			}
-		}
-		if( !config ) config = {};
-		config.current = config.current || "";
-		config.levels = config.levels || {};
-		var _current = "";
-		if( object instanceof Array ){
-			_.async.forEach( object,
-				function( element, done ){
-					_current = config.current + ":" + object.indexOf( element );
-					config.levels[ _current ] = element;
-					if( typeof element == "object" ){
-						constructLevels( element,
-							minimal,
-							function( _levels ){
-								if( !( _levels instanceof Error ) ){
-									for( var key in _levels ){
-										config.levels[ key ] = _levels[ key ];
-									}
-								}
-								done( ( ( _levels instanceof Error )? _levels : null ) );
-							} )( {
-								current: _current,
-								levels: config.levels
-							} );
-					}else{
-						done( );
-					}
-				},
-				function( error ){
-					minimize( config.levels );
-					callback( error || config.levels );
-				} );
-		}else if( typeof object == "object" ){
-			var keys = Object.keys( object );
-			_.async.forEach( keys,
-				function( key, done ){
-					_current = config.current + ( ( config.current )? "." : "" ) + key;
-					config.levels[ _current ] = object[ key ];
-					if( typeof object[ key ] == "object" ){
-						constructLevels( object[ key ],
-							minimal,
-							function( _levels ){
-								if( !( _levels instanceof Error ) ){
-									for( var key in _levels ){
-										config.levels[ key ] = _levels[ key ];
-									}
-								}
-								done( ( ( _levels instanceof Error )? _levels : null ) );
-							} )( {
-								current: _current,
-								levels: config.levels
-							} );
-					}else{
-						done( );
-					}
-				},
-				function( error ){
-					minimize( config.levels );
-					callback( error || config.levels );
-				} );
-		}
-	} );
+		} );
+	}catch( error ){
+		throw Error.construct( error );
+	}
 }
 // @method-end:true
+//:	================================================================================================
+
+//:	================================================================================================
+function deconstructLevels( levels, callback ){
+	try{
+		return ( function( config ){
+
+			config = config || {};
+			levels = config.levels || levels;
+			callback = config.callback || callback
+
+			config.depth = config.depth || 0;
+			config.entity = config.entity;
+
+			if( !levels || !callback ){
+				throw Error.construct( { error: "invalid parameters" } );
+			}
+
+			var levelKeys = Object.keys( levels );
+
+			_.async.forEach( levelKeys,
+				function( key, done ){
+					var identifier = key.match( /[:\.@]/g )[ 0 ];
+					if( identifier === ":" ){
+						return done( "array" );
+					}
+					if( identifier === "@" ){
+						return done( key.split( /[:\.@]/g )[ 1 ] );
+					}
+					done( );
+				},
+				function( type ){
+					if( type instanceof Error ){
+						return callback( Error.construct( error ) );
+					}
+
+					if( type === "array" ){
+						config.entity = [];
+					}else{
+						try{
+							config.entity = new eval( type )( );
+						}catch( error ){
+							config.entity = {};
+						}
+					}
+					
+					_.async.forEachSeries( levelKeys,
+						function( key, done ){
+							if( !!~key.indexOf( "." ) || key.indexOf( ":" ) == 0 ){
+								var value = levels[ key ];
+								push( config.entity, value, key,
+									function( entity ){
+										if( entity instanceof Error ){
+											return done( error );
+										}
+										done( );
+									} )( );
+								return;
+							}
+							done( );
+						},
+						function( error ){
+							if( error ){
+								return callback( Error.construct( error ) );
+							}
+							callback( config.entity );
+						} );
+				} );
+		} );
+	}catch( error ){
+		throw Error.construct( error );
+	}
+}
+
 //:	================================================================================================
 
 //:	================================================================================================
