@@ -78,11 +78,14 @@ function cloneEntity( entity, callback ){
 		return ( function( config ){
 
 			//: Override parameters.
+			config = config || {};
 			entity = config.entity || entity;
 			callback = config.callback || callback;
 
 			//: Do not do anything if no parameters.
-			if( !entity || !callback || typeof entity != "object" ){
+			if( ( entity && typeof entity != "object" )
+				|| !entity || !callback )
+			{
 				throw Error.construct( { error: "invalid parameters" } );
 			}
 
@@ -94,44 +97,47 @@ function cloneEntity( entity, callback ){
 			}
 			
 			//: This function is for cloning arrays.
-			function cloneArray( element, callback ){
+			config.cloneArray = config.cloneArray 
+				|| function( element, callback ){
 				/*: 
 					Clone element that is either, array or object type.
 					Check also if the object is a function.
 				*/
 				if( typeof element == "function" ){
-					cloneFunction( element, callback );
+					config.cloneFunction( element, callback );
 				}else if( element instanceof Array 
 					|| typeof element == "object" )
 				{
-					cloneEntity( element,
+					config.cloneEntity( element,
 						function( cloned ){
 							callback( cloned );
 						} )( );
 				}else{
 					callback( element );
 				}
-			}
+			};
 
 			//: This function is for cloning objects.
-			function cloneObject( entity, key, callback ){
+			config.cloneObject = config.cloneObject
+				|| function( entity, key, callback ){
 				//: Clone entity with the specified key.
 				if( typeof entity[ key ] == "function" ){
-					cloneFunction( entity[ key ], callback );
+					config.cloneFunction( entity[ key ], callback );
 				}else if( typeof entity[ key ] == "object" 
 					|| entity[ key ] instanceof Array )
 				{
-					cloneEntity( entity[ key ],
+					config.cloneEntity( entity[ key ],
 						function( cloned ){
 							callback( cloned );
 						} )( );
 				}else{
 					callback( entity[ key ] );
 				}
-			}
+			};
 			
 			//: Clone the function type object.
-			function cloneFunction( method, callback ){
+			config.cloneFunction = config.cloneFunction 
+				|| function( method, callback ){
 				/*:
 					In case that the function is a native function,
 						we don't have to clone it.
@@ -150,16 +156,17 @@ function cloneEntity( entity, callback ){
 					.digest( "hex" ).toString( );
 				
 				//: We created this function so that we will not do the same procedure twice.
-				function persistFunction( locals ){
+				config.persistFunction = config. persistFunction 
+					|| function( locals ){
 					
-
 					//: Try to retrieve the global path.
 					var path = ( ( ( ocis || { } )
 						.environment || { } )
 						.reference || { } )
 						.path || config.path || "";
 
-					function writeFunction( ){
+					config.writeFunction = config.writeFunction 
+						|| function( ){
 						/*:
 						 	We will write the function to a temporary file using 
 						 		the method ID as the file name and the variable
@@ -179,7 +186,7 @@ function cloneEntity( entity, callback ){
 								//: Delete the temporary file.
 								_.fs.unlink( "./" + methodID + ".js" );
 							} );
-					}
+					};
 
 					//: Use the override path.
 					if( path ){
@@ -192,12 +199,12 @@ function cloneEntity( entity, callback ){
 								if( !fileStatistics.isDirectory( ) ){
 									path = "";
 								}
-								writeFunction( );
+								config.writeFunction( );
 							} );
 						return;
 					}
-					writeFunction( );
-				}
+					config.writeFunction( );
+				};
 				
 				//: We want to clone the locals.
 				if( method.locals ){
@@ -205,63 +212,45 @@ function cloneEntity( entity, callback ){
 						Developers should attach all locals to 
 							the function's "locals" variable.
 					*/
-					cloneEntity( method.locals, 
+					config.cloneEntity( method.locals, 
 						function( clonedLocals ){
-							persistFunction( clonedLocals );
+							config.persistFunction( clonedLocals );
 						} );
 					return;
 				}
 				//: If there are no locals.
-				persistFunction( );
-			}
+				config.persistFunction( );
+			};
 
 			if( entity instanceof Array ){
 				_.async.map( entity,
 					function( element, done ){
-						done( null,
-							function( cache ){
-								cloneArray( element,
-									function( cloned ){
-										cache( null, cloned );
-									} );
+						config.cloneArray( element,
+							function( cloned ){
+								done( null, cloned );
 							} );
 					},
-					function( error, functions ){
+					function( error, cloned ){
 						if( error ){
 							return callback( Error.construct( error ) );
 						}
-						_.async.parallel( functions,
-							function( error, cloned ){
-								if( error ){
-									return callback( Error.construct( error ) );
-								}
-								callback( cloned );
-							} );
+						callback( cloned );
 					} );
 			}else if( typeof entity == "object" ){
 				var clone = { };
-				_.async.map( Object.keys( entity ),
+				_.async.forEach( Object.keys( entity ),
 					function( key, done ){
-						done( null,
-							function( cache ){
-								cloneObject( entity, key,
-									function( cloned ){
-										clone[ key ] = cloned;
-										cache( null );
-									} );
+						config.cloneObject( entity, key,
+							function( cloned ){
+								clone[ key ] = cloned;
+								done( );
 							} );
 					},
-					function( error, functions ){
+					function( error ){
 						if( error ){
 							return callback( Error.construct( error ) );
 						}
-						_.async.parallel( functions,
-							function( error ){
-								if( error ){
-									return callback( Error.construct( error ) );
-								}
-								callback( clone );
-							} );
+						callback( clone );
 					} );
 			}else{
 				callback( entity );
@@ -328,13 +317,12 @@ function hashEntity( identity, callback ){
 				+ ( ( identity )? //: Is there an identity supplied?
 					( ":" + identity ) //: Append
 					: "" ); //: Do nothing
-
 		if( callback ){
 			return callback( result );
 		}
 		return result;
 	}catch( error ){
-		
+		throw Error.construct( error );
 	}
 }
 //	@method-end:true
@@ -443,55 +431,58 @@ function hashObject( object, strict, callback ){
 	try{
 		return ( function( config ){
 			//: Override parameter values.
+			
+			config = config || {};
 			object = config.object || object;
 			strict = config.strict || strict;
 			callback = config.callback || callback;
 
-			function generateHash( ){
+			config.generateHash = config.generateHash 
+				|| function( ){
 				//: We can change the UID explicitly.
 				object[ "@hashUID" ] = hashEntity( hashIdentity( object ) );
 				//: We don't want to change the hash ID if it is already there.
-				if( strict && !object[ "@hashID" ] ) object[ "@hashID" ] = hashIdentity( object );
-			}
-			
-			function hash( entity, callback ){
-				try{
-					hashObject( entity, strict,
-						function( error ){
-							callback( error );
-						} )( );
-				}catch( error ){
-					callback( error );
+				if( strict && !object[ "@hashID" ] ) {
+					object[ "@hashID" ] = hashIdentity( object );
 				}
-			}
+			};
+			
+			config.hash = config.hash 
+				|| function( entity, callback ){
+				hashObject( entity, strict,
+					function( error ){
+						callback( Error.construct( error ) );
+					} )( );
+			};
+			
 			var keys = Object.keys( object );
 			//: Do we have more keys?
 			if( keys.length ){
 				//: Create the key and supply the hash ID.
-				generateHash( );
+				config.generateHash( );
 				//: Traverse all objects.
 				_.async.forEach( keys,
 					function( key, doneHashing ){
 						if( object[ key ] instanceof Array ){
 							_.async.forEach( object[ key ],
 								function( element, doneHashing ){
-									hash( element, doneHashing );
+									config.hash( element, doneHashing );
 								},
 								function( error ){
-									doneHashing( error );
+									doneHashing( Error.construct( error ) );
 								} );
 						}else if( typeof object[ key ] == "object" ){
-							hash( object[ key ], doneHashing );
+							config.hash( object[ key ], doneHashing );
 						}else{
-							doneHashing( error );
+							doneHashing( Error.construct( error ) );
 						}
 					},
-					function( error ){
-						callback( error || object );
+					function( result ){
+						callback( result );
 					} );
 			}else if( typeof object == "object" ){
 				//: This is a single key object.
-				generateHash( );
+				config.generateHash( );
 				callback( object );
 			}
 		} );
@@ -629,7 +620,7 @@ function push( entity, value, key, callback ){
 				//: If we are dealing with succeeding arrays.
 				if( !!~( config.keys[ config.depth ] || "" ).indexOf( ":" ) ){
 					config.entity = config.entity[ config.index ] 
-						|| ( config.entity[ config.index ] = [] )
+						|| ( config.entity[ config.index ] = [] );
 				}
 
 				//: Do we still have more keys?
@@ -749,7 +740,7 @@ function constructLevels( object, minimal, callback ){
 							constructLevels( element, minimal,
 								function( levels ){
 									if( levels instanceof Error ){
-										return done( levels )
+										return done( levels );
 									}
 									done( );
 								} )( {
@@ -782,7 +773,7 @@ function constructLevels( object, minimal, callback ){
 							constructLevels( object[ key ], minimal,
 								function( levels ){
 									if( levels instanceof Error ){
-										return done( levels )
+										return done( levels );
 									}
 									done( );
 								} )( {
@@ -819,7 +810,7 @@ function deconstructLevels( levels, callback ){
 
 			config = config || {};
 			levels = config.levels || levels;
-			callback = config.callback || callback
+			callback = config.callback || callback;
 
 			config.depth = config.depth || 0;
 			config.entity = config.entity;
