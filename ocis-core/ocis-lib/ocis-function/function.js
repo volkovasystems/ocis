@@ -1,6 +1,6 @@
 //:	================================================================================================
 /*
-    @requireinfo-start:
+    @requireInfo-start:
         @id: "1ff42a614cd38b740d144d1775fb45d9"
         @id-end:true
         
@@ -15,7 +15,7 @@
 			"fs":"node"
 		}
 		@packages-end:true
-	@requireinfo-end:true
+	@requireInfo-end:true
 */
 //	@require-start:
 var _ = {
@@ -30,7 +30,7 @@ var _ = {
 
 //:	================================================================================================
 /*:
-	@methodinfo-start:
+	@methodInfo-start:
 		@title: "Deep Clone Function"
 		@title-end:true
 
@@ -43,7 +43,7 @@ var _ = {
 				status: "stable",
 				version: "0.1",
 				usage: "a",
-				methodtype: "utility",
+				methodType: "utility",
 				description:
 					"Fast deep cloning of objects, arrays and functions.\n"
 					+ "Thanks to async.js\n\n",
@@ -53,8 +53,8 @@ var _ = {
 					callback: "function"
 				},
 				result: "object",
-				returntype: "double-return/callback",
-				errorhandler: "try-catch/throw/Error",
+				returnType: "double-return/callback",
+				errorHandler: "try-catch/throw/Error",
 				todo: [
 					{
 						description: "Serialize functions to achieve deepest cloning.",
@@ -65,11 +65,11 @@ var _ = {
 				revision: [],
 				note: [],
 				comment: [],
-				testcase: "function-test.cloneEntity",
-                testresult: []
+				testCase: "function-test.cloneEntity",
+                testResult: []
 			}
 		@info-end:true
-	@methodinfo-end:true
+	@methodInfo-end:true
 */
 //	@method-start:
 function cloneEntity( entity, callback ){
@@ -117,6 +117,13 @@ function cloneEntity( entity, callback ){
 				}
 			};
 
+			//: This function is for cloning objects with names.
+			//: Object with names are non-JSON constructed object.
+			config.cloneProperObject = config.cloneProperObject
+				|| function( entity, callback ){
+				
+			};
+			
 			//: This function is for cloning objects.
 			config.cloneObject = config.cloneObject
 				|| function( entity, key, callback ){
@@ -237,6 +244,12 @@ function cloneEntity( entity, callback ){
 						callback( cloned );
 					} );
 			}else if( typeof entity == "object" ){
+				/*:
+					There is an issue here. If the object is a non-JSON constructed
+						entity then we will have issues regarding inheritance.
+					
+					
+				*/
 				var clone = { };
 				_.async.forEach( Object.keys( entity ),
 					function( key, done ){
@@ -265,7 +278,7 @@ function cloneEntity( entity, callback ){
 
 //:	================================================================================================
 /*
-	@methodinfo-start:
+	@methodInfo-start:
 		@title: "Hash Entity Function"
 		@title-end:true
 		@info:
@@ -291,18 +304,18 @@ function cloneEntity( entity, callback ){
 					callback: "function"
 				},
 				result: "string",
-				returntype: "single-return/callback",
-				errorhandler: "try-catch/throw",
+				returnType: "single-return/callback",
+				errorHandler: "try-catch/throw",
 				todo: [],
 				xxx: [],
 				revision: [],
 				note: [],
 				comment: [],
-				testcase: "function-test.hashEntity",
-				testresult: []
+				testCase: "function-test.hashEntity",
+				testResult: []
 			}
 		@info-end:true
-	@methodinfo-end:true
+	@methodInfo-end:true
 */
 //	@method-start:
 function hashEntity( identity, callback ){
@@ -330,7 +343,7 @@ function hashEntity( identity, callback ){
 
 //:	================================================================================================
 /*
-    @methodinfo-start:
+    @methodInfo-start:
         @title: "Hash Identity Function"
         @info:
             {
@@ -349,18 +362,18 @@ function hashEntity( identity, callback ){
                     callback: "function"
                 }
                 result: "string",
-                returntype: "single-return/callback",
-                errorhandler: "try-catch/throw",
+                returnType: "single-return/callback",
+                errorHandler: "try-catch/throw",
                 todo: [],
                 xxx: [],
                 revision: [],
                 note: [],
                 comment: [],
-                testcase: "function-test.hashIdentity",
-                testresult: []
+                testCase: "function-test.hashIdentity",
+                testResult: []
             }
         @info-end:true
-    @methodinfo-end:true
+    @methodInfo-end:true
 */
 //  @method-start:
 function hashIdentity( object, callback ){
@@ -409,8 +422,8 @@ function hashIdentity( object, callback ){
 				callback: "function"
 			}
 			result: "object",
-			returntype: "double-return/callback",
-			errorhandler: "try-catch/throw",
+			returnType: "double-return/callback",
+			errorHandler: "try-catch/throw",
 			todo: [
 				{
 					description: "Optimize more.",
@@ -421,8 +434,8 @@ function hashIdentity( object, callback ){
 			revision: [],
 			note: [],
 			comment: [],
-			testcase: "function-test.hashIdentity",
-			testresult: []
+			testCase: "function-test.hashIdentity",
+			testResult: []
 		}
 	@info-end:true
 	@method:
@@ -518,15 +531,15 @@ function hashObject( object, strict, callback ){
 				callback: "function"
 			}
 			result: [ { name: "entity", type: "object|array" } ],
-			returntype: "double-return/callback",
-			errorhandler: "try-catch/throw",
+			returnType: "double-return/callback",
+			errorHandler: "try-catch/throw",
 			todo: [],
 			xxx: [],
 			revision: [],
 			note: [],
 			comment: [],
-			testcase: "function-test.push",
-			testresult: []
+			testCase: "function-test.push",
+			testResult: []
 		}
 	@info-end:true
 	@method:
@@ -684,15 +697,15 @@ function push( entity, value, key, callback ){
 				callback: "function"
 			}
 			result: [ { name: "levels", type: "object" } ],
-			returntype: "double-return/callback",
-			errorhandler: "try-catch/throw",
+			returnType: "double-return/callback",
+			errorHandler: "try-catch/throw",
 			todo: [],
 			xxx: [ { description: "Current execution time of 2 milliseconds." } ],
 			revision: [],
 			note: [],
 			comment: [],
-			testcase: "function-test.constructLevels",
-			testresult: []
+			testCase: "function-test.constructLevels",
+			testResult: []
 		}
 	@info-end:true
 	@method:
@@ -707,10 +720,19 @@ function constructLevels( object, minimal, callback ){
 			minimal = config.minimal || minimal;
 			callback = config.callback || callback;
 
+
 			if( !object || !callback ){
 				throw Error.construct( { error: "invalid parameters" } );
 			}
-			
+
+			//: This is for cloning the object first before leveling.
+			if( config.clone ){
+				return cloneEntity( object,
+					function( clonedObject ){
+						return constructLevels( clonedObject, minimal, callback )( config );
+					} )( config );
+			}
+
 			config.minimize = config.minimize || function( levels ){
 				if( minimal ){
 					for( var key in levels ){
@@ -732,12 +754,12 @@ function constructLevels( object, minimal, callback ){
 
 			var current = "";
 			if( object instanceof Array ){
-				_.async.forEach( object,
+				return _.async.forEach( object,
 					function( element, done ){
 						current = config.current + ":" + object.indexOf( element );
 						config.levels[ current ] = element;
 						if( typeof element == "object" ){
-							constructLevels( element, minimal,
+							return constructLevels( element, minimal,
 								function( levels ){
 									if( levels instanceof Error ){
 										return done( levels );
@@ -748,7 +770,6 @@ function constructLevels( object, minimal, callback ){
 									levels: config.levels,
 									minimize: config.minimize
 								} );
-							return;
 						}
 						done( );
 					},
@@ -757,20 +778,21 @@ function constructLevels( object, minimal, callback ){
 							return callback( Error.construct( error ) );
 						}
 						config.minimize( config.levels );
-						callback( config.levels );
+						return callback( config.levels );
 					} );
 			}else if( typeof object == "object" ){
+				//: All objects will be determined by their classes.
 				if( object.constructor ){
 					config.current = ( ( config.current )? ( config.current + "." ) : "" ) 
 						+ "@" + object.constructor.name;
 					config.levels[ config.current ] = object.constructor.toString( );
 				}
-				_.async.forEach( Object.keys( object ),
+				return _.async.forEach( Object.keys( object ),
 					function( key, done ){
 						current = config.current + ( ( config.current )? "." : "" ) + key;
 						config.levels[ current ] = object[ key ];
 						if( typeof object[ key ] == "object" ){
-							constructLevels( object[ key ], minimal,
+							return constructLevels( object[ key ], minimal,
 								function( levels ){
 									if( levels instanceof Error ){
 										return done( levels );
@@ -781,7 +803,6 @@ function constructLevels( object, minimal, callback ){
 									levels: config.levels,
 									minimize: config.minimize
 								} );
-							return;
 						}
 						done( );
 					},
@@ -790,11 +811,10 @@ function constructLevels( object, minimal, callback ){
 							return callback( Error.construct( error ) );
 						}
 						config.minimize( config.levels );
-						callback( config.levels );
+						return callback( config.levels );
 					} );
-			}else{
-				callback( );
 			}
+			return callback( );
 		} );
 	}catch( error ){
 		throw Error.construct( error );
@@ -1085,8 +1105,8 @@ function DArray( datastruct, callback ){
 				callback: "function"
 			}
 			result: "object",
-			returntype: "single-return/callback",
-			errorhandler: "try-catch/throw",
+			returnType: "single-return/callback",
+			errorHandler: "try-catch/throw",
 			todo: [
 				{
 					description: "Optimize more.",
@@ -1097,8 +1117,8 @@ function DArray( datastruct, callback ){
 			revision: [],
 			note: [],
 			comment: [],
-			testcase: "function-test.constructLevels",
-			testresult: []
+			testCase: "function-test.constructLevels",
+			testResult: []
 		}
 	@info-end:true
 	@method:
@@ -1254,37 +1274,33 @@ function equals( object, comparator, callback ){
 
 //:	================================================================================================
 /*:
-    This will check if the object is pure dot notated
-        or has high probability that it is a dot notated object.
-    
-    Criteria if it is dot notated:
-        1. Either single key string or dot notated.
-        2. Contains value or arrays that does not contain nested objects.
-        3. The percentage variation of single key string vs dot notated is 1:2
-        4. If the object is single key value pair and the value is not nested objects
-            then it can be considered as pure dot notated.
-    
-    This will return either true or false.
-    This will only analyze pure dot notated object.
-    Single key strings are considered dot notated.
+	This will check if the object is pure dot notated
+		or has high probability that it is a dot notated object.
+	
+	Criteria if it is dot notated:
+		1. Either single key string or dot notated.
+		2. Contains value or arrays that does not contain nested objects.
+		3. The percentage variation of single key string vs dot notated is 1:2
+		4. If the object is single key value pair and the value is not nested objects
+			then it can be considered as pure dot notated.
+	
+	This will return either true or false.
+	This will only analyze pure dot notated object.
+	Single key strings are considered dot notated.
 */
 function isDotNotated( object, callback ){
-    try{
-        cloneEntity( object,
-            function( clone ){
-                inspectTypes( clone, false,
-                    function( levelTypes, typeStatistics ){
-                        callback( !~Object.keys( typeStatistics ).indexOf( "object" )
-                            || !~Object.keys( typeStatistics ).indexOf( "function" ) );
-                } )( );
-            } );        
-    }catch( error ){
-    	throw constructBasicError( error, 
-			object, 
-			Date.now( ), 
-			isDotNotated, 
-			callback )( );
-    }
+	try{
+		cloneEntity( object,
+			function( clone ){
+				inspectTypes( clone, false,
+					function( levelTypes, typeStatistics ){
+						callback( !~Object.keys( typeStatistics ).indexOf( "object" )
+							|| !~Object.keys( typeStatistics ).indexOf( "function" ) );
+				} )( );
+			} );		
+	}catch( error ){
+		throw Error.construct( error );
+	}
 }
 //:	================================================================================================
 
@@ -2429,7 +2445,7 @@ Object.prototype.to = function( ){
 
 Object.prototype.clone = function( ){
 	
-}
+};
 
 Object.prototype.merge = function( entity, callback ){
 	
@@ -2449,15 +2465,15 @@ Object.prototype.equals = function( ){
 
 Object.prototype.persist = function( ){
 	
-}
+};
 
 Object.prototype.explode = function( ){
 	
-}
+};
 
 Object.prototype.implode = function( ){
 	
-}
+};
 
 //:	================================================================================================
 
