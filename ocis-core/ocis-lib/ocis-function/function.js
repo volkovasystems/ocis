@@ -1,10 +1,9 @@
 //:	================================================================================================
 /*
-    @requireInfo-start:
-        @id: "1ff42a614cd38b740d144d1775fb45d9"
-        @id-end:true
-        
-		@variable: "_"
+	@requireInfo-start:
+		@id: "1ff42a614cd38b740d144d1775fb45d9"
+		@id-end:true
+				@variable: "_"
 		@variable-end:true
 
 		@packages: {
@@ -26,6 +25,356 @@ var _ = {
 	util: require( "util" )
 };
 //	@require-end:true
+//:	================================================================================================
+
+//:	================================================================================================
+/*:
+	We try to denote real type entities. This makes the types semi-static.
+
+	When types follow proper meta rules then we can seperate entities properly.
+
+	In Javascript we have types defined by typeof
+
+	We have different sub types of types wherein we can classify properly
+		what type we are really dealing with.
+
+	Real types are types that really corresponds properly to the entity.
+
+	Strict types are types that focuses on strict correspondence.
+		For example we have objects like JSON and object not defined as JSON.
+		We have to segregate those types so that we know what we are really dealing with.
+*/
+function isRealNaN( number ){
+	return ( number !== number && isNaN( number ) );
+}
+//:	================================================================================================
+
+//:	================================================================================================
+function isRealNumber( number ){
+	return ( !isRealNaN( number ) && typeof number == "number" );
+}
+//:	================================================================================================
+
+//:	================================================================================================
+function isRealString( string ){
+	return ( typeof string == "string" );
+}
+//:	================================================================================================
+
+//:	================================================================================================
+function isStorageObject( object ){
+	return isRealObject( object )
+		|| isRealArray( object );
+}
+//:	================================================================================================
+
+//:	================================================================================================
+function isFunctionalObject( object ){
+	//: Functional objects contains interface marker as properties.
+	//: These are functions with "@interface:property" annotation
+	//: Also test for this optional annotation "@isFunctionalObject"
+	return isRealFunction( object ) 
+		&& !isRealEmptyObject( object[ "@interface:property" ] )
+		&& isRealTrue( object[ "@isFunctionalObject" ] );
+}
+//:	================================================================================================
+
+//:	================================================================================================
+function isRealFunction( method ){
+	return typeof method == "function";
+}
+//:	================================================================================================
+
+//:	================================================================================================
+function isRealNull( entity ){
+	return ( typeof entity == "object" && entity === null );
+}
+//:	================================================================================================
+
+//:	================================================================================================
+function isRealObject( object ){
+	return ( typeof object == "object" && !isRealNull( object ) );
+}
+//:	================================================================================================
+
+//:	================================================================================================
+function isRealArray( array ){
+	return ( isRealObject( array ) && array instanceof Array );
+}
+//:	================================================================================================
+
+//:	================================================================================================
+function isRealUndefined( entity ){
+	return ( typeof entity == "undefined" && entity === undefined );
+}
+//:	================================================================================================
+
+//:	================================================================================================
+function isRealInfinity( number ){
+	return ( typeof number == "number" && entity === Infinity );
+}
+//:	================================================================================================
+
+//:	================================================================================================
+function isRealEmpty( entity ){
+	return ( entity === "" || entity === 0 );
+}
+//:	================================================================================================
+
+//:	================================================================================================
+function isRealTrue( status ){
+	return status === true;
+}
+//:	================================================================================================
+
+//:	================================================================================================
+function isRealFalse( status ){
+	return status === false;
+}
+//:	================================================================================================
+
+//:	================================================================================================
+function isRealEmptyObject( object ){
+	return isRealObject( object ) 
+		&& isRealEmpty( Object.keys( object ) )
+		&& ( /^\{\s*\}$/g ).test( JSON.stringify( object ) );
+}
+//:	================================================================================================
+
+//:	================================================================================================
+function isRealEmptyArray( array ){
+	return isRealArray( array )
+		&& isRealEmpty( array.length );
+		&& ( /^\[\s*\]$/g ).test( JSON.stringify( array ) );
+}
+//:	================================================================================================
+
+//:	================================================================================================
+function isParameterExisting( parameter ){
+	return !isRealUndefined( parameter );
+}
+//:	================================================================================================
+
+//:	================================================================================================
+function isStrictObject( object ){
+
+}
+//:	================================================================================================
+
+//:	================================================================================================
+function isStrictJSON( object ){
+
+}
+//:	================================================================================================
+
+//:	================================================================================================
+/*:
+
+*/
+function isTruthy( value ){
+	return ( value !== false
+		&& !isRealEmpty( value )
+		&& !isRealNaN( value )
+		&& !isRealNull( value )
+		&& !isRealUndefined( value ) );
+}
+//:	================================================================================================
+
+//:	================================================================================================
+function isClassByConvention( blueprint ){
+	if( typeof blueprint != "function" ){
+		throw Error.construct( { error: "invalid class" } );
+	}
+
+	/*:
+		This function follows the default convention
+			that classes should start with a capital letter.
+
+		Implementation specific to OCIS will mark the 
+			class as "@isClassByConvention".
+	*/
+
+	//: Try doing this so that we can mark the class right away.
+	isStandardGlobalClass( blueprint );
+
+	//: This will check for convention
+	if( ( /^[A-Z]\w*$/g ).test( blueprint.name ) ){
+		//: Mark if non standard class.
+		markNonStandardGlobalClass( blueprint );
+
+		annotateObject( blueprint, "@isConvenedClass", true, true );
+		annotateObject( blueprint.prototype, "@isFromConvenedClass", true, true );
+	}
+}
+//:	================================================================================================
+
+//:	================================================================================================
+function isStandardGlobalClass( blueprint ){
+	if( typeof blueprint != "function" ){
+		throw Error.construct( { error: "invalid class" } );
+	}
+
+	/*: 
+		This is a comparison function if the class used
+			is based from ECMAScript standard global classes.
+
+		We're not going to use the term "class" because it is
+			a reserve word, instead we will use "blueprint".
+
+		This function only follows ECMAScript standard.
+
+		NOTE: Update this function if a new standard class is
+			incorporated.
+
+		Check for implementation specific marker then proceed
+			with global checker.
+	*/
+
+	var result = blueprint[ "@isStandardGlobalClass" ] 
+		|| ( !!~( this.standardGlobalClassList
+			|| ( this.standardGlobalClassList = [
+				"Function",
+				"Object",
+				"Array",
+				"String",
+				"Boolean",
+				"Number",
+				"Math",
+				"Date",
+				"RegExp",
+				"Error",
+				"JSON" 
+			] ) ).indexOf( ( blueprint.name || "" ) ) );
+
+	//: This is OCIS specific. 
+	if( result ){
+		annotateObject( blueprint, "@isStandardGlobalClass", true, true );
+		annotateObject( blueprint.prototype, "@isStandardGlobalClass", true, true );
+	}
+
+	return result;
+}
+//:	================================================================================================
+
+//:	================================================================================================
+
+function markNonStandardGlobalClass( blueprint ){
+	if( typeof blueprint != "function" ){
+		throw Error.construct( { error: "invalid class" } );
+	}
+
+	if( !isStandardGlobalClass( blueprint ) ){
+		annotateObject( blueprint, "@isNonStandardGlobalClass", true, true );
+		annotateObject( blueprint.prototype, "@isFromNonStandardGlobalClass", true, true );
+	}
+}
+/*:
+	For future references
+	Object.getOwnPropertyNames(Object).filter(function(property) {
+        return typeof Object[property] == 'function';
+    });
+*/
+//:	================================================================================================
+
+//:	================================================================================================
+function lockNativeSetting( object, key ){
+
+}
+//:	================================================================================================
+
+//:	================================================================================================
+function restrictNativeSetting( object, key ){
+
+}
+//:	================================================================================================
+
+//:	================================================================================================
+function unlockNativeSetting( object, key ){
+
+}
+//:	================================================================================================
+
+//:	================================================================================================
+/*:
+	Annotating object appends a special property "@annotated"
+	We have a general rule that if an object is annotated,
+		annotations should never be deleted.
+*/
+function annotateObject( object, key, value, fixed ){
+	if( !~[ "function", "object" ].indexOf( typeof object ) ){
+		throw Error.construct( { error: "invalid object parameter" } );
+	}
+	if( typeof key != "string" || !( /^@\w+$/g ).test( key ) ){
+		throw Error.construct( { error: "invalid key parameter" } );
+	}
+	if( object.hasOwnProperty( key ) ){
+		//: Update the value.
+		object[ key ] = value;
+	}else{
+		Object.defineProperty( object, key, {
+			enumerable: false,
+			configurable: false,
+			writable: !fixed,
+			value: value
+		} );
+	}
+	markAnnotated( object );
+}
+
+//:	================================================================================================
+
+//:	================================================================================================
+function markAnnotated( object ){
+	if( !~[ "function", "object" ].indexOf( typeof object ) ){
+		throw Error.construct( { error: "invalid object parameter" } );
+	}
+	if( object.hasOwnProperty( "@annotated" ) ){
+		return;
+	}
+	Object.defineProperty( object, "@annotated", {
+		enumerable: false,
+		configurable: false,
+		writable: false,
+		value: true
+	} );	
+}
+//:	================================================================================================
+
+//:	================================================================================================
+function constructFunction( procedure, name ){
+	var constructFunctionWithPreProcessor = 
+		function constructFunctionWithPreProcessor( preFunction ){
+
+		};
+
+	var constructFunctionWithPrePostProcessor =
+		function constructFunctionWithPrePostProcessor( preFunction, postFunction ){
+
+		};
+
+	var constructNormalFunction = function constructNormalFunction( ){
+		return constructBaseFunction( ).replace( "@normalFunction", 
+			"function" + ( isParameterExisting( name )? ( " " + name ) : "" ) + "( ){"
+				+ "		procedure.apply( this, arguments );"
+				+ "}" );
+	};
+
+	var constructBaseFunction = function constructBaseFunction( ){
+		return "function( procedure ){ @normalFunction }";
+	};
+
+	var constructDoubleReturnFunction = 
+		function constructDoubleReturnFunction( ){
+
+		};
+	try{
+		return ( function( config ){
+
+		} );		
+	}catch( error ){
+		throw Error.construct( error );
+	}
+}
 //:	================================================================================================
 
 //:	================================================================================================
@@ -66,7 +415,7 @@ var _ = {
 				note: [],
 				comment: [],
 				testCase: "function-test.cloneEntity",
-                testResult: []
+				testResult: []
 			}
 		@info-end:true
 	@methodInfo-end:true
@@ -117,11 +466,33 @@ function cloneEntity( entity, callback ){
 				}
 			};
 
-			//: This function is for cloning objects with names.
-			//: Object with names are non-JSON constructed object.
+			/*: 
+				This function is for cloning objects with names.
+				Object with names are non-JSON constructed object.
+				These objects should be called proper objects.
+			*/
 			config.cloneProperObject = config.cloneProperObject
 				|| function( entity, callback ){
-				
+				/*: 
+					First extract the class of object. Since the entity
+						is an object of that type the constructor already has a name.
+					
+					We want to full clone the object. And we also want to adapt the
+						inherited properties in the clone. By adapting is
+						also cloning the prototype chain.
+					
+					What we want now, is traverse the prototype chain until
+						the Object scope. We don't want to inherit
+						anything under the Object.prototype. (This is for further analysis.)
+					
+					Reverse cloning and re-attaching the cloned prototype
+						back to the upper level.
+						
+					Issue: 
+						We cannot track the hierarchy tree of inherited objects.
+				*/
+				//var link = entity.prototype;
+				//while( link )
 			};
 			
 			//: This function is for cloning objects.
@@ -281,9 +652,9 @@ function cloneEntity( entity, callback ){
 	@methodInfo-start:
 		@title: "Hash Entity Function"
 		@title-end:true
-		@info:
+		@info: 
 			{
-                id: "69339c2b239691cff22584f4c98b765d",
+				id: "69339c2b239691cff22584f4c98b765d",
 				method: "hashEntity",
 				name: "Hash Entity Function",
 				author: "Richeve S. Bebedor",
@@ -299,7 +670,7 @@ function cloneEntity( entity, callback ){
 					+ "Format:\n"
 					+ "\t~<hashed-entity>:<optional:hashed-identity>\n\n",
 				guide: "practical/common",
-				interface:{
+				interface: {
 					identity: "value",
 					callback: "function"
 				},
@@ -319,10 +690,10 @@ function cloneEntity( entity, callback ){
 */
 //	@method-start:
 function hashEntity( identity, callback ){
-    /*:
-        Generally, all objects contains randomized hashed identities. 
-        This enables similar object structures to be unique.
-    */
+	/*:
+		Generally, all objects contains randomized hashed identities. 
+		This enables similar object structures to be unique.
+	*/
 	try{
 		var result = "~" +  _.crypto.createHash( "md5" )
 			.update( _.uuid.v4( ), "utf8" )
@@ -343,37 +714,37 @@ function hashEntity( identity, callback ){
 
 //:	================================================================================================
 /*
-    @methodInfo-start:
-        @title: "Hash Identity Function"
-        @info:
-            {
-                method: "hashIdentity",
-                name: "Hash Identity Function",
-                author: "Richeve S. Bebedor",
-                status: "stable",
-                version: "0.1",
-                usage: "a",
-                methodtype: "utility",
-                description:
-                    "Gives the hash ID of the object based on the structure of the object.",
-                guide: "practical/common"
-                interface:{
-                    object: "object",
-                    callback: "function"
-                }
-                result: "string",
-                returnType: "single-return/callback",
-                errorHandler: "try-catch/throw",
-                todo: [],
-                xxx: [],
-                revision: [],
-                note: [],
-                comment: [],
-                testCase: "function-test.hashIdentity",
-                testResult: []
-            }
-        @info-end:true
-    @methodInfo-end:true
+	@methodInfo-start:
+		@title: "Hash Identity Function"
+		@info:
+			{
+				method: "hashIdentity",
+				name: "Hash Identity Function",
+				author: "Richeve S. Bebedor",
+				status: "stable",
+				version: "0.1",
+				usage: "a",
+				methodtype: "utility",
+				description:
+					"Gives the hash ID of the object based on the structure of the object.",
+				guide: "practical/common"
+				interface:{
+					object: "object",
+					callback: "function"
+				}
+				result: "string",
+				returnType: "single-return/callback",
+				errorHandler: "try-catch/throw",
+				todo: [],
+				xxx: [],
+				revision: [],
+				note: [],
+				comment: [],
+				testCase: "function-test.hashIdentity",
+				testResult: []
+			}
+		@info-end:true
+	@methodInfo-end:true
 */
 //  @method-start:
 function hashIdentity( object, callback ){
@@ -401,10 +772,10 @@ function hashIdentity( object, callback ){
 //:	================================================================================================
 /*
 	@title: "Hash Object Function"
-    @title-end:true
+	@title-end:true
 	@info:
 		{
-            id: "b72fcba1d5fc73cee377d1471f78d6e2"
+			id: "b72fcba1d5fc73cee377d1471f78d6e2"
 			method: "hashObject",
 			name: "Hash Object Function",
 			author: "Richeve S. Bebedor",
@@ -511,7 +882,7 @@ function hashObject( object, strict, callback ){
 	@title: "Dynamic Push Function"
 	@info:
 		{
-            id: ""
+			id: ""
 			method: "push",
 			name: "Dynamic Push Function",
 			author: "Richeve S. Bebedor",
@@ -675,7 +1046,7 @@ function push( entity, value, key, callback ){
 	@title: "Construct Levels Function"
 	@info:
 		{
-            id: "f30eda1a07a5a5e16b38e2fd0a4c6aa6"
+			id: "f30eda1a07a5a5e16b38e2fd0a4c6aa6"
 			method: "constructLevels",
 			name: "Construct Levels Function",
 			author: "Richeve S. Bebedor",
@@ -908,102 +1279,95 @@ function verifyParameters( interface, parameters, callback ){
 
 //:	================================================================================================
 function inspectType( value, verbose ){
-    try{
-        //: Turn the verbosity off, true by default
-        if( typeof verbose == "boolean" && !verbose ){
-            return inspectType( value ).split( ":" )[ 0 ];
-        }
-        //: If it is not false as per dynamic casting to boolean of javascript.
-        if( value ){
-            //: Analyze first if empty. This will prevent further errors.
-            var _value = JSON.stringify( value );
-            if( ( _value === "[]" || _value === "{}" )
-                && ( value || {} ).constructor.name.toLowerCase( ) == ( typeof value ) )
-            {
-                return ( typeof value ) + ":empty";
-            }else if( typeof value != "object" ){
-                //: If it is not an object then it can be a number, string or boolean(true)
-                if( typeof value == "number" ){
-                    return typeof value + ":"
-                      + ( ( !!~( "" + value ).indexOf( "." ) )? "float":"integer" );
-                }
-                if( typeof value == "string" ){
-                    var numeric = 0;
-                    var symbolic = 0;
-                    var alpha = 0;
-                    var ALPHA = 0;
-                    var subtype = "";
-                    if( !!( numeric = ( value.match( /[0-9]/g ) || [] ).length ) ){
-                        subtype = "numeric";
-                    }
-                    if( !!( symbolic = ( value.match( /\W/g ) || [] ).length ) ){
-                        subtype = "symbolic";
-                    }
-                    if( !!( alpha = ( value.match( /[a-z]/g ) || [] ).length ) ){
-                        subtype = "alpha";
-                    }
-                    if( !!( ALPHA = ( value.match( /[A-Z]/g ) || [] ).length ) ){
-                        subtype = "ALPHA";
-                    }
-                    if( alpha && ALPHA ){
-                        subtype = "Alpha";
-                    }
-                    if( numeric && symbolic ){
-                        subtype = "numericalsymbolic";
-                    }
-                    if( numeric && alpha ){
-                        subtype = "alphanumeric";
-                    }
-                    if( numeric && ALPHA ){
-                        subtype = "ALPHANUMERIC";
-                        if( alpha ){
-                            subtype = "AlphaNumeric";
-                        }
-                    }
-                    if( symbolic && alpha ){
-                        subtype = "alphasymbolic";
-                    }
-                    if( symbolic && ALPHA ){
-                        subtype = "ALPHASYMBOLIC";
-                        if( alpha ){
-                            subtype = "AlphaSymbolic";
-                        }
-                    }
-                    if( numeric && symbolic && alpha ){
-                        subtype = "mixed";
-                    }
-                    if( numeric && symbolic && ALPHA ){
-                        subtype = "MIXED";
-                        if( alpha ){
-                            subtype = "Mixed";
-                        }
-                    }
-                    return typeof value + ":" + subtype
-                        + "(" + symbolic + "," + numeric + "," + alpha + "," + ALPHA + ")";
-                }
-                return typeof value;
-            }
-            var name = ( value || {} ).constructor.name;
-            return name + ":" + ( typeof value )
-                + ( ( name == "Array" )? "[" + value.length + "]"
-                    : "{" + Object.keys( value ).length + "}" );
-        }
-            //: If it is false.
-        return ( typeof value
-            + ( ( value === null )? ":null"
-                : ( ( value === undefined )? ":undefined"
-                : ( isNaN( value )? ":NaN"
-                : ( ( value === "" || value === 0 )? ":empty"
-                : ( ( typeof value == "boolean" )? ""
-                : ":unknown" ) ) ) ) ) );
-    }catch( error ){
-        throw {
-            name: "error:inspectType",
-            message: error.message,
-            tracePath: null,
-            date: Date.now( )
-        };
-    }
+	try{
+		//: Turn the verbosity off, true by default
+		if( isRealFalse( verbose ) ){
+			return inspectType( value ).split( ":" )[ 0 ];
+		}
+
+		//: If it is not false as per dynamic casting to boolean of javascript.
+		if( isTruthy( value ) ){
+			//: Analyze first if empty. This will prevent further errors.
+			if( ( isRealEmptyObject( value ) || isRealEmptyArray( value ) ){
+				return ( typeof value ) + ":empty";
+			}else if( typeof value != "object" ){
+				//: If it is not an object then it can be a number, string or boolean(true)
+				if( isRealNumber( value ) ){
+					return typeof value + ":"
+					  + ( ( !!~( "" + value ).indexOf( "." ) )? "float":"integer" );
+				}
+				if( isRealString( value ) ){
+					var numeric = 0;
+					var symbolic = 0;
+					var alpha = 0;
+					var ALPHA = 0;
+					var subtype = "";
+					if( !!( numeric = ( value.match( /[0-9]/g ) || [] ).length ) ){
+						subtype = "numeric";
+					}
+					if( !!( symbolic = ( value.match( /\W/g ) || [] ).length ) ){
+						subtype = "symbolic";
+					}
+					if( !!( alpha = ( value.match( /[a-z]/g ) || [] ).length ) ){
+						subtype = "alpha";
+					}
+					if( !!( ALPHA = ( value.match( /[A-Z]/g ) || [] ).length ) ){
+						subtype = "ALPHA";
+					}
+					if( alpha && ALPHA ){
+						subtype = "Alpha";
+					}
+					if( numeric && symbolic ){
+						subtype = "numericalsymbolic";
+					}
+					if( numeric && alpha ){
+						subtype = "alphanumeric";
+					}
+					if( numeric && ALPHA ){
+						subtype = "ALPHANUMERIC";
+						if( alpha ){
+							subtype = "AlphaNumeric";
+						}
+					}
+					if( symbolic && alpha ){
+						subtype = "alphasymbolic";
+					}
+					if( symbolic && ALPHA ){
+						subtype = "ALPHASYMBOLIC";
+						if( alpha ){
+							subtype = "AlphaSymbolic";
+						}
+					}
+					if( numeric && symbolic && alpha ){
+						subtype = "mixed";
+					}
+					if( numeric && symbolic && ALPHA ){
+						subtype = "MIXED";
+						if( alpha ){
+							subtype = "Mixed";
+						}
+					}
+					return typeof value + ":" + subtype
+						+ "(" + symbolic + "," + numeric + "," + alpha + "," + ALPHA + ")";
+				}
+				return typeof value;
+			}
+			var name = ( value || {} ).constructor.name;
+			return name + ":" + ( typeof value )
+				+ ( ( name == "Array" )? "[" + value.length + "]"
+					: "{" + Object.keys( value ).length + "}" );
+		}
+		//: If it is false.
+		return ( typeof value
+			+ ( isRealNull( value )? ":null"
+				: ( isRealUndefined( value )? ":undefined"
+				: ( isRealNaN( value )? ":NaN"
+				: ( isRealEmpty( value )? ":empty"
+				: ( ( typeof value == "boolean" )? ""
+				: ":unknown" ) ) ) ) ) );
+	}catch( error ){
+		throw Error.construct( error );
+	}
 }
 // @method-end:true
 //:	================================================================================================
@@ -1015,47 +1379,42 @@ function inspectType( value, verbose ){
 		and the statistics for the redundancy count of types.
 */
 function inspectTypes( object, verbose, callback ){
-    try{
-        return ( function( config ){
-            if( typeof object != "object" || typeof object != "function" ){
-                callback( inspectType( object, verbose ) );
-                return;
-            }
-            //: We don't want to harm the object.
-            cloneEntity( object,
-            function( cloned ){
-                constructLevels( cloned, null,
-                function( levels ){
-                    var levelkeys = Object.keys( levels );
-                    var leveltypes = {};
-                    _.async.map( levelkeys,
-                    function( levelkey, cachetype ){
-                        leveltypes[ levelkey ] = inspectType( levels[ levelkey ], verbose );
-                        cachetype( null, leveltypes[ levelkey ] );
-                    },
-                    function( error, types ){
-                        var typestat = {};
-                        var basictype = "";
-                        for( var i in types ){
-                            if( verbose || verbose === null ){
-                                basictype = types[ i ].split( ":" )[ 0 ];
-                                typestat[ basictype ] = ( typestat[ basictype ] + 1 ) || 1;
-                            }
-                            typestat[ types[ i ] ] = ( typestat[ types[ i ] ] + 1 ) || 1;
-                        }
-                        callback( error || leveltypes, ( ( error )? null : typestat ) );
-                    } );
-                } )( );
-            } )( );
-        } );
-    }catch( error ){
-        throw {
-            name: "error:inspectTypes",
-            message: error.message,
-            tracePath: null,
-            date: Date.now( )
-        };
-    }
+	try{
+		return ( function( config ){
+			if( typeof object != "object" || typeof object != "function" ){
+				callback( inspectType( object, verbose ) );
+				return;
+			}
+			//: We don't want to harm the object.
+			cloneEntity( object,
+			function( cloned ){
+				constructLevels( cloned, null,
+				function( levels ){
+					var levelkeys = Object.keys( levels );
+					var leveltypes = {};
+					_.async.map( levelkeys,
+					function( levelkey, cachetype ){
+						leveltypes[ levelkey ] = inspectType( levels[ levelkey ], verbose );
+						cachetype( null, leveltypes[ levelkey ] );
+					},
+					function( error, types ){
+						var typestat = {};
+						var basictype = "";
+						for( var i in types ){
+							if( verbose || verbose === null ){
+								basictype = types[ i ].split( ":" )[ 0 ];
+								typestat[ basictype ] = ( typestat[ basictype ] + 1 ) || 1;
+							}
+							typestat[ types[ i ] ] = ( typestat[ types[ i ] ] + 1 ) || 1;
+						}
+						callback( error || leveltypes, ( ( error )? null : typestat ) );
+					} );
+				} )( );
+			} )( );
+		} );
+	}catch( error ){
+		throw Error.construct( error );
+	}
 }
 // @method-end:true
 //:	================================================================================================
@@ -1125,8 +1484,8 @@ function DArray( datastruct, callback ){
 */
 function equals( object, comparator, callback ){
 	if( typeof object != typeof comparator
-        || object instanceof Array
-        || comparator instanceof Array )
+		|| object instanceof Array
+		|| comparator instanceof Array )
 	{
 		/*:
 			If the type of the object and comparator is different,
@@ -1306,71 +1665,126 @@ function isDotNotated( object, callback ){
 
 //:	================================================================================================
 function indexOf( entity, search, origin, index, starting, callback ){
-    /*:
-        Complex indexOf function for extracting indexes in either object, array or string.
-            It can also extract the specified entity starting from a specified index of 
-            occurrence of the search query.
-        
-        Entity can be an object, array, or string.
-            [*] object
-            [*] array
-            [*] string
-            
-        Search can be a string, hash ID, regular expression.
-            [*] string
-                If the search is a verified normal string, it will always denote
-                    a key or value (if the key's value is a string
-                    or if converted to string matches the search) iff the entity is an object.
-                It will denote a string token if the entity is a string.
-                It will denote a value match if the entity is an array.
-            [*] hash ID
-                If the string contains tilde(~) followed by 32 characters followed 
-                    by colon(:) then another 32 characters. Then the string is 
-                    a hashed entity ID. This will search for matching hash IDs.
-            [*] regex
-            
-   
-        Origin can be start and end. It denotes what is the flow of the search.
-            By default the origin is true, if the origin is false then start it at the end.
-        
-        Index denotes that it should cut the terminals starting from that index 
-        	and disregard that token.
-        	
-    	Starting denotes the starting point of the search. This can be an index or a key.
-    */
-    cloneEntity( entity,
-        function( clonedEntity ){
-            inspectTypes( clonedEntity,
-                function( levelTypes, typeStatistics ){
-                    if( typeof levelTypes == "string" ){
-                        //: We will now only accept string token, and regex
-                        if( search instanceof RegExp || typeof search == "string" ){
-                            if( ( starting !== null || starting!== undefined ) 
-                                && typeof starting == "number" )
-                            {
-                                //var tokens = entity.split( search );
-                                
-                                //var  = entity.indexOf( tokens[ startat ] ) - 1;
-                                
-                            }else{
-                                
-                            }
-                        }else{
-                            //: We cannot support it as of the moment
-                            callback( { 
-                                warning: {
-                                    name: "warning:indexOf",
-                                    message: "search query not supported",
-                                    tracePath: null,
-                                    date: Date.now( )
-                                }
-                            } );
-                        }
-                    }else{
-                        
-                    }
-                } )( );
-        } )( );
+	/*:
+		Complex indexOf function for extracting indexes in either object, array or string.
+			It can also extract the specified entity starting from a specified index of 
+			occurrence of the search query.
+				Entity can be an object, array, or string.
+			[*] object
+			[*] array
+			[*] string
+					Search can be a string, hash ID, regular expression.
+			[*] string
+				If the search is a verified normal string, it will always denote
+					a key or value (if the key's value is a string
+					or if converted to string matches the search) iff the entity is an object.
+				It will denote a string token if the entity is a string.
+				It will denote a value match if the entity is an array.
+			[*] hash ID
+				If the string contains tilde(~) followed by 32 characters followed 
+					by colon(:) then another 32 characters. Then the string is 
+					a hashed entity ID. This will search for matching hash IDs.
+			[*] regex
+			   
+		Origin can be start and end. It denotes what is the flow of the search.
+			By default the origin is true, if the origin is false then start it at the end.
+				Index denotes that it should cut the terminals starting from that index 
+			and disregard that token.
+			
+		Starting denotes the starting point of the search. This can be an index or a key.
+	*/
+	cloneEntity( entity,
+		function( clonedEntity ){
+			inspectTypes( clonedEntity,
+				function( levelTypes, typeStatistics ){
+					if( typeof levelTypes == "string" ){
+						//: We will now only accept string token, and regex
+						if( search instanceof RegExp || typeof search == "string" ){
+							if( ( starting !== null || starting!== undefined ) 
+								&& typeof starting == "number" )
+							{
+								//var tokens = entity.split( search );
+								//var  = entity.indexOf( tokens[ startat ] ) - 1;
+							}else{
+							}
+						}else{
+							//: We cannot support it as of the moment
+							callback( { 
+								warning: {
+									name: "warning:indexOf",
+									message: "search query not supported",
+									tracePath: null,
+									date: Date.now( )
+								}
+							} );
+						}
+					}else{
+					}
+				} )( );
+		} )( );
+}
+//:	================================================================================================
+
+//:	================================================================================================
+/*:
+	The bind function binds two function together thereby subjecting the procedure
+		to any of the following binding procedures or conditions.
+
+		Merge procedure through binding.
+		1. If function A is executed, execute function B afterwards with the same parameters.
+		2. If function A is executed, execute function B afterwards passing the results
+			of function A to function B.
+		3. If function A is executed, execute function B afterwards passing the results
+			of function A to function B with the same parameters.
+		4. Inverse of 1, 2 and 3.
+		
+		Event merging through binding.
+		5. Simultaneously run function A and function B with the same parameters.
+		6. Simultaneously run function A and function B with the same parameters
+			then run them again with the results included.
+		
+	
+
+	Results are also classified based on how the binding procedure will expose them.
+		
+		Simple merging.
+		1. Expose result of A and/or result of B.
+		2. Merge result of A and B choosing A over B if there are redundancies.
+		3. Merge result of A and B choosing B over A if there are redundancies.
+		4. Merge result of A and B but preserve the state. (multi-state result)
+
+		Event merging.
+		5. Follows simple merging result procedure. (single event)
+		6. Expose result of event A and/or event B.
+		7. Merge result of event A and B choosing A over B if there are redundancies.
+		8. Merge result of event A and B choosing B over A if there are redundancies.
+		9. Merge result of A and B but preserve the state. (multi-state multi-event result)
+
+
+
+	Simple binding is linear. Complex binding is dynamic. Complex binding involves both
+		complex and simple binding.
+
+	The bind function can bind two or more functions linearly. Binding more than
+		two events involves recursive binding. 
+
+	Recursive binding for complex binding involves functional binding mnemonics.
+		This can be done using a flow structure. (Note that this is not yet supported.)
+
+	Parameter passing can be static or conformative. Static parameter passing on
+		binded functions follows the order of how the parameters are passed on
+		the bounding function. Conformative parameter passing is based on the meta
+		structure of the binding functions.
+
+	One of the feature of this bind function is to be able to create
+		a new function with a static name.
+*/
+function bind( a, b, meta ){
+	try{
+
+	}catch( error ){
+		throw Error.construct( error );
+	}
 }
 //:	================================================================================================
 
@@ -1380,7 +1794,7 @@ function indexOf( entity, search, origin, index, starting, callback ){
 	Complex contains() function for determining content existence.
 	Containment is determined by the search query.
 	Searching is limited to level. Zero level means traverse the entire object.
-	Search query values must be unique as much as possble as required.
+	Search query values must be unique as much as possible as required.
 	Results will return true or false, locations matching the search query
 		and the redundancy count per query.
 
@@ -1448,6 +1862,14 @@ function indexOf( entity, search, origin, index, starting, callback ){
 
 		[2] Searching through object/function:
 		[3] Normal value search:
+
+	TODO: 
+		There are many repeated constructs here. I don't know if we have to refactor some
+			of the constructs since, refactoring them may conclude to making new functions.
+		If we are thinking of modifying the flow then that's a different thing since
+			the solution presented here is near to the correct one.
+		I just have the feeling that if we will optimized more the code then we are
+			creating more unnnecessary anonymous functions.
 */
 function containsEntity( entity, search, level, callback ){
 	/*:
@@ -1457,6 +1879,7 @@ function containsEntity( entity, search, level, callback ){
 		[2] Function
 		[3] Object
 		[4] String
+		[5] Other values are converted to string
 
 		If the search value is a boolean, the procedure must switch to checking
 			if the key is existing or not.
@@ -1536,18 +1959,23 @@ function containsEntity( entity, search, level, callback ){
 				[3] Regex (can only be applied to string [or number?])
 
 			Search on string/number:
+				*NOTE: Numbers will be converted to string.
 			[a] Number
 			[b] String
 			[c] Regex
+			[d] Array
 
 		Level can be the restriction factor to limit the search.
 
 		Location format:
 			{
-				location:
-				query:
+				location: number|[array:number]
+				query: 
 				queryID:
 				redundancy:
+				isWholeMatch:
+				matches
+				matchCount
 			}
 
 			Level is the dot notated appended keys where the values are found.
@@ -1557,20 +1985,58 @@ function containsEntity( entity, search, level, callback ){
 
 	*/
 
-	function normalizedLocations( locations ){
+	//: We compose preprocessing in this construct for brevity.
+	config.prepareData = config.prepareData
+		|| function( callback ){
+		cloneEntity( entity,
+			function( clonedEntity ){
+				cloneEntity( search,
+					function( clonedSearch ){
+						constructLevels( clonedEntity, true,
+							function( entityLevels ){
+								constructLevels( clonedSearch, true,
+									function( searchLevels ){
+										callback( clonedEntity,
+											clonedSearch,
+											entityLevels,
+											searchLevels );
+									} )( );
+							} )( );
+					} )( );
+			} )( );
+	};
+
+	/*:
+		Deleting all redundant locations, if any.
+		Though we are not 100% sure that there are any redundant locations.
+		It is still safe to assume that there are because future searches
+			that may be complex or varies in complexity may result in redundant locations.
+	*/
+	config.normalizedLocations = config.normalizedLocations
+		|| function( locations ){
+		//: TODO: Use the deep clone function.
 		var clonedLocations = JSON.stringify( locations );
 		var redundants = [];
 		var query;
 		var flag = false;
 		//: We will reuse the for loop here twice.
+		//: This loop is used to extract the redundants and increments the redundants count.
 		for( var i = 0; i < locations.length; i++ ){
 			if( !flag ){
-				//: First splice all redundants.
-				//: Use the value for the location to search for other similar locations.
-				query = new RegExp( JSON.stringify( locations[ i ] ), "g" );
+				/*: 
+					First splice all redundants.
+					Use the value for the location to search for other similar locations.
+					This construct "replace( /\W/g, "\\$&" )" will replace
+						all special characters appended with '\'.
+
+					Array type location is an excemption to this rule BUT we may
+						have to include them because there are chances of matches.
+				*/
+				query = new RegExp( JSON.stringify( locations[ i ] ).replace( /\W/g, "\\$&" ), "g" );
 				if( ( clonedLocations.match( query ) || [] ).length > 1 ){
 					redundants.push( locations.splice( i--, 1 ) );
 				}
+				//: Signify that we have to count the redundants now.
 				if( ( i + 1 ) == locations.length ){
 					i = 0;
 					flag = true;
@@ -1584,120 +2050,301 @@ function containsEntity( entity, search, level, callback ){
 				}
 			}
 		}
+		//: Return the set of unique locations
 		return locations;
-	}
+	};
 
-	if( entity instanceof Array ){
-		cloneEntity( entity,
-		function( cloned ){
-			constructLevels( cloned, true,
-			function( levels ){
-				var arrayLevels = levels;
-				var arrayKeys = Object.keys( arrayLevels );
+	//: Let's try exciting new things :)
+	config.match = config.match
+		|| function( entity, search, callback ){
+		
+		//: Entity should be a string.
+		if( !!~"number|string".indexOf( typeof entity ) ){
+			
+			//: Ensure that it is alwasy a string.
+			entity = "" + entity;
+
+			//: So we have to classify the search object.
+			if( search instanceof RegExp ){
+
+			}else if( typeof search == "object" ){
+				/*: 
+					This in the form of dot notated or object search format.
+					This is also applicable to arrays since arrays
+						will be converted to level structure.					
+				*/
+				if( Object.keys( search ).toString( )
+					.match( new RegExp( "/(value(Range)?){1}(index(Range)?){1}/", g ) ) )
+				{
+					
+				}
+			}else{
+
+			}
+			return;
+		}
+		callback( );
+	};
+
+	/*:
+		If the entity is normal string or number do not bother preparing the data.
+		The difference of entity as string or number is that you don't
+			need to bother for any existence of any key.
+		You just need to verify if certain parts or subparts exists.
+		The meaning of containment in this context is purely based on
+			the existence of something in a thing being observed.
+	*/
+	if( !!~"number|string".indexOf( typeof entity ) ){
+		
+		//: We have to ensure that the entity is a string if it is other than string.
+		entity = "" + entity;
+		
+		var matches;
+		var location;
+
+		if( search instanceof RegExp ){
+ 		
+ 			matches = entity.match( search );
+ 			location = [];
+			var clonedEntity = entity;
+			for( var match in matches ){
+				location.push( clonedEntity.indexOf( match ) );
+				clonedEntity = clonedEntity.replace( match, "" );	
+			}
+ 			
+ 			if( matches.length == 1 && matches[ 0 ] === entity ){
+				return callback( {
+					location: location,
+					queryID: hashIdentity( search.toString( ) ),
+					query: search,
+					isWholeMatch: true,
+					matches: matches,
+					matchCount: matches.length
+				} );
+			}
+		
+			//: If there are matches.
+			if( !!~matches.length ){
+				return callback( {
+					location: location,
+					queryID: hashIdentity( search.toString( ) ),
+					query: search,
+					matches: matches,
+					matchCount: matches.length
+				} );
+			}
+		}else if( search instanceof Array ){
+			/*:
+				I don't know why do we need to deal of having to construct 
+					the leveled search if the search is an array.
+				For the mean time put it here as a safety measure.
+			*/
+			constructLevels( search, true,
+				function( searchLevels ){
+					var searchKeys = Object.keys( searchLevels );
+					_.async.map( searchKeys,
+						function( searchKey, cacheLocations ){
+							/*:
+								There is an issue arising here, we can test using indexOf
+									but the problem is what if there are many occurrences?
+								What if it is the whole word?
+								So we have to devise a good way on how to handle this
+									scenarios.
+
+								So there are three cases here:
+									1. If there are many matches.
+									2. If there is only 1 match but a substring.
+									3. If the whole search equals the match.
+							*/
+							matches = entity.match( new RegExp( searchLevels[ searchKey ], "gi" ) );
+							
+							//: A sub match only.
+							location = entity.indexOf( searchLevels[ searchKey ] );
+							
+							if( entity === searchLevels[ searchKey ] ){
+								//: The whole word matches.
+								location  = 0;
+							}else if( ( matches || [] ).length > 1 ){
+								//: Sub words matches sub parts of the entity.
+								location = [];
+								var clonedEntity = entity;
+								for( var match in matches ){
+									location.push( clonedEntity.indexOf( match ) );
+									clonedEntity = clonedEntity.replace( match, "" );	
+								}
+							}
+							
+							var query = searchKey + ":" + searchLevels[ searchKey ];
+							if( !!~location ){
+								return cacheLocations( null, {
+									location: location,
+									query: query,
+									queryID: hashIdentity( query ),
+									redundancy: 0
+								} );	
+							}
+							
+							cacheLocations( null, null );
+						},
+						function( error, locations ){
+							if( error ){
+								return callback( Error.construct( error ) );
+							}
+
+							callback( !!config.normalizedLocations( locations ).length, locations );
+						} );
+				} )( { clone: true } );
+		}else if( typeof search == "object" ){
+			//: The search is an object search format.
+			//: But it can never be a dot notated.
+
+		}else{
+			search = "" + search;
+
+		}
+	}else{
+		config.prepareData( function( clonedEntity, clonedSearch, entityLevels, searchLevels ){
+			//: Follow the rules for entities that are arrays.
+			if( clonedEntity instanceof Array ){
+				var arrayKeys = Object.keys( entityLevels );
 				//: If search is an array in equal levels or indeterminate levels.
-				if( search instanceof Array ){
-					//: Create a copy of the search array.
-					cloneEntity( search,
-					function( cloned ){
-						//: Construct levels to be compared.
-						constructLevels( cloned, true,
-						function( levels ){
-							var searchLevels = levels;
-							_.async.map( arrayKeys,
-							function( arrayKey, done ){
-								//: We don't want to process beyond the prescribed level.
-								if( arrayKeys.indexOf( arrayKey ) > level && level !== 0 ){
-									return done( null, null );
-								}
-								done( null,
-								function( cacheLocation ){
-									var location = [];
-									for( var key in searchLevels ){
-										//: We compare regardless of type except for boolean types
-										if( typeof searchLevels[ key ] == "boolean"
-											&& searchLevels[ key ]
-											&& key == arrayKey )
-										{
-											//: This is for handling key existence.
-											location.push( {
-												location: arrayKey,
-												query: "isExists:" + key,
-												queryID: hashIdentity( "isExists:" + key ),
-												isExists: true,
-												redundancy: 0
-											} );
-										}else if( searchLevels[ key ] == arrayLevels[ arrayKey ]
-											|| searchLevels[ key ] === arrayLevels[ arrayKey ] )
-										{
-											location.push( {
-												location: arrayKey,
-												query: key + ":" + searchLevels[ key ],
-												queryID: hashIdentity( key + ":"
-													+ searchLevels[ key ] ),
-												redundancy: 0
-											} );
-										}
-									}
-									cacheLocation( null, location );
-								} );
-							},
-							function( error, functions ){
-								if( error ){
-									callback( error );
-									return;
-								}
-								//: Splice all nulls.
-								for( var i = 0; i < functions.length; i++ ){
-									if( !functions[ i ] ){
-										functions.splice( i--, 1 );
-									}
-								}
-								_.async.parallel( functions,
-								function( error, locations ){
-									/*:
-										The result is an array of array.
-										Make the results 1 dimensional array.
-									*/
-									var _locations = [];
-									for( var i in locations ){
-										for( var j in locations[ i ] ){
-											_locations.push( locations[ i ][ j ] );
-										}
-									}
-									locations = _locations;
-									/*:
-										Results may contain redundant locations,
-											filter and normalized.
-										If locations match at different indexes,
-											and the query id matches also,
-											splice the last and increments the redundancy.
-									*/
-									callback( !!normalizedLocations( locations ).length || error,
-										( ( !error )? locations : null ) );
-								} );
-							} );
-						} )( );
-					} )( );
-				}else if( search instanceof RegExp ){
+				if( clonedSearch instanceof Array ){
 					_.async.map( arrayKeys,
-						function( arrayKey, cacheLocation ){
+						function( arrayKey, cacheLocations ){
+							//: We don't want to process beyond the prescribed level.
+							//: XXX: What if the key is similar? Hope lastIndexOf will solve this.
+							if( arrayKeys.lastIndexOf( arrayKey ) > level && level !== 0 ){
+								return cacheLocations( null, null );
+							}
+							var locations = [];
+							var query;
+							for( var key in searchLevels ){
+								//: We compare regardless of type except for boolean types
+								if( typeof searchLevels[ key ] == "boolean"
+									&& searchLevels[ key ]
+									&& key == arrayKey )
+								{
+									//: This is for handling key existence.
+									query = "isExists:" + key;
+									locations.push( {
+										location: arrayKey,
+										query: query,
+										queryID: hashIdentity( query ),
+										isExists: true,
+										redundancy: 0
+									} );
+								}else if( searchLevels[ key ] == entityLevels[ arrayKey ]
+									|| searchLevels[ key ] === entityLevels[ arrayKey ] )
+								{
+									query = key + ":" + searchLevels[ key ];
+									locations.push( {
+										location: arrayKey,
+										query: query,
+										queryID: hashIdentity( query ),
+										redundancy: 0
+									} );
+								}
+							}
+							cacheLocations( null, locations );
+						},
+						function( error, locations ){
+							if( error ){
+								return callback( Error.construct( error ) );
+							}
+							//: Splice all nulls and empty array.
+							for( var i = 0; i < locations.length; i++ ){
+								if( !locations[ i ] && !locations[ i ].length ){
+									locations.splice( i--, 1 );
+								}
+							}
+							/*:
+								The result is an array of array.
+								Make the results 1 dimensional array.
+							*/
+							var _locations = [];
+							for( var i in locations ){
+								for( var j in locations[ i ] ){
+									_locations.push( locations[ i ][ j ] );
+								}
+							}
+							locations = _locations;
+							/*:
+								Results may contain redundant locations,
+									filter and normalized.
+								If locations match at different indexes,
+									and the query id matches also,
+									splice the last and increments the redundancy.
+							*/
+							callback( !!config.normalizedLocations( locations ).length, locations );
+						} );
+				}else if( clonedSearch instanceof RegExp ){
+					//: If search is a regular expression.
+					_.async.map( arrayKeys,
+						function( arrayKey, cacheLocations ){
+							
 							//: Handle levels.
 							if( ( arrayKey.match( "." ) || [] ).length > level && level !== 0 ){
-								return cacheLocation( null, null );
+								return cacheLocations( null, null );
 							}
+
 							//: Apply regex.
-							var matches = ( arrayLevels[ arrayKey ] + "" ).match( search ) || [];
-							if( !!~matches.length ){
-								return cacheLocation( null,{
+							var matches = ( entityLevels[ arrayKey ] + "" )
+								.match( clonedSearch ) || [];
+
+							/*:
+								The matches' length should be really
+									greater than 1 because, if there are no matches
+									the result will contain an element of the whole string.
+
+								Errata:
+									Seems there is a confusion here. Sometimes the match
+										returns an element even though the result is not correct.
+
+								Scenario: 
+									What if the regexp intends to match the whole string?
+									
+									Or it may seem to match the whole string but it is 
+										not matching at all. [*]
+
+									[*] This is a paradoxical issue. Since complex regex 
+											under this issue is indeterminate.
+										So this will be left to the user of this function.
+										The chance that this will happen is roughly 50% 
+											or variably higher than that.
+
+								
+								So we have to verify if the regex intends to match the whole
+									string and it really matches the whole string.
+
+								Scenario:
+									The regex pertains to a subpart so should we include
+										sub locations?
+							*/
+							if( matches.length == 1 && matches[ 0 ] === entityLevels[ arrayKey ] ){
+								//: This states that the regex matches the whole string.
+								//: Let's still add the matches and the matchCount.
+								return cacheLocations( null, {
 									location: arrayKey,
-									queryID: hashIdentity( search.toString( ) ),
-									query: search,
+									queryID: hashIdentity( clonedSearch.toString( ) ),
+									query: clonedSearch,
+									redundancy: 0,
+									isWholeMatch: true
+									matches: matches,
+									matchCount: matches.length
+								} );
+							}
+							//: If there are matches.
+							if( !!~matches.length ){
+								return cacheLocations( null, {
+									location: arrayKey,
+									queryID: hashIdentity( clonedSearch.toString( ) ),
+									query: clonedSearch,
 									redundancy: 0,
 									matches: matches,
 									matchCount: matches.length
 								} );
 							}
-							cacheLocation( null, null );
+							cacheLocations( null, null );
 						},
 						function( error, locations ){
 							//: Splice all nulls.
@@ -1706,210 +2353,180 @@ function containsEntity( entity, search, level, callback ){
 									locations.splice( i--, 1 );
 								}
 							}
-							callback( !!normalizedLocations( locations ).length || error,
-								( ( !error )? locations : null ) );
+							callback( !!config.normalizedLocations( locations ).length, locations );
 						} );
-				}else if( typeof search == "object" ){
-                    var filter = function( value, values, callback ){
-						_.async.forEach( values,
-						function( _value, done ){
-							if( _value instanceof RegExp && typeof _value == "object" ){
-								var matches = ( "" + value ).match( _value ) || [];
-								var matchCount = matches.length;
-								if( matchCount ){
-									/*:
-										Match count and matches are optional informations.
-											These informations will determine the data redundancy.
-									*/
-									return done( {
-										matchCount: matchCount,
-										matches: matches,
-										redundancy: matches,
-										searchValue: _value
-									} );
-								}
-							}else if( typeof _value == "boolean" && _value ){
-								//: This is for handling key existence.
-								return done( {
-									redundancy: 0,
-									searchValue: "isExists"
-								} );
-							}else if( ( typeof _value == "number"
-                                    && ( _value == parseInt( value, 10 )
-									|| _value == parseFloat( value ) ) )
-								|| ( typeof _value == "string" && _value == value ) )
-							{
-								return done( {
-									redundancy: 0,
-									searchValue: _value
-								} );
-							}
-							done( );
-						},
-						function( result ){
-							callback( result );
-						} );
-					};
+				}else if( typeof clonedSearch == "object" ){
+					/*:
+						This is for object search format.
+						Other than that the search object will not be entertained.
+					
+						This is for checking if the search is an object search format.
+						
+						TODO: 
+							Replace this procedure if the ObjectSearch class 
+								is already implemented. A generalized function verify( ) 
+								should be replaced here.
 
-					var indexes = search.indexrange || [ search.index ];
-					var values = search.valuerange || [ search.value ];
+						For now I will not implement this.
 
-					//: ============================================================================
-					//: Check if invalid search format. Either it is empty or invalid format.
-					/*
-						@errorinfo-start:
-							@errorid: "7d5c788e975ff3c04cce64b0306948c3"
-							@errorid-end:true
-
-							@methodid: "2f4db74fadb70e2a05f1284789aae123"
-							@methodid-end:true
-
-							@title: "Error on Invalid Search Format"
-							@title-end:true
-
-							@info:
-								{
-									description:
-										"Error on invalid object search format query.\n"
-										+ "If the indexes and/or values are empty or unrecognized,"
-										+ "then this will be emitted.\n\n",
-									type: "functional",
-									level: 1
-								}
-							@info-end:true
-						@errorinfo-end:true
+						Errata: 
+							This is not only for object search format this holds true also
+								for all dot notated objects.
 					*/
-					//	@errorcapture-start:
-					if( !indexes.length || !values.length ){
-						/*:
-							Trace path format:
-							<procedure|flow>:<procedure|flow>:<procedure|flow>...
-						*/
-						return callback( {
-							error: {
-								name: "error:containsEntity",
-								input: null,
-								message: "invalid search query format",
-								tracePath:
-									"identify entity as array:"
-								+	"clone entity:"
-								+	"construct levels:"
-								+	"identify search query as search using object search format:"
-								+	"indexes and values is empty due to invalid format:"
-								+	_.util.inspect( search, true ),
-								date: Date.now( )
-							}
-						} );
-					}
-					//	@errorcapture-end:true
-					//: ============================================================================
 
-					_.async.map( arrayKeys,
-					function( arrayKey, cacheLocation ){
-						if( arrayKeys.indexOf( arrayKey ) > level && level !== 0 ){
-							return cacheLocation( null, null );
-						}
-                        var isNumberKey;
-                        var isNumberIndex;
-						for( var i in indexes ){
-                            isNumberKey = parseInt( arrayKey.split( "." )[ 0 ], 10 );
-                            isNumberIndex = parseInt( indexes[ i ], 10 );
-							if( isNumberKey == isNumberIndex
-								|| !!( arrayKey.match( indexes[ i ] ) || [] ).length
-								|| !!~arrayKey.indexOf( indexes[ i ] )
-								|| indexes[ i ] == arrayKey )
-							{
-								filter( arrayLevels[ arrayKey ], values,
-								function( filterResult ){
-									if( filterResult.searchValue == "isExists" ){
-										//: For handling key existence.
-										return cacheLocation( null, {
-											location: arrayKey,
-											query: "isExists:" + arrayKey,
-											queryID: hashIdentity( "isExists:" + arrayKey ),
-											isExists: true,
-											redundancy: filterResult.redundancy
+					config.filter = config.filter 
+						|| function( value, values, callback ){
+						_.async.forEach( values,
+							function( item, done ){
+								if( item instanceof RegExp && typeof item == "object" ){
+									var matches = ( "" + value ).match( item ) || [];
+									var matchCount = matches.length;
+									if( matchCount ){
+										/*:
+											Match count and matches are optional informations.
+											These informations will determine the data redundancy.
+										*/
+										return done( {
+											matchCount: matchCount,
+											matches: matches,
+											redundancy: matches,
+											searchValue: item
 										} );
 									}
-									cacheLocation( null, {
-										location: arrayKey,
-										query: indexes[ i ] + ":" + filterResult.searchValue,
-										queryID: hashIdentity( indexes[ i ] + ":"
-											+ filterResult.searchValue ),
-										redundancy: filterResult.redundancy,
-										matches: filterResult.matches,
-										matchCount: filterResult.matchCount
+								}else if( typeof item == "boolean" && item ){
+									//: This is for handling key existence.
+									return done( {
+										redundancy: 0,
+										searchValue: "isExists"
 									} );
-								} );
-								return;
+								}else if( ( typeof item == "number"
+									&& ( item == parseInt( value, 10 )
+									|| item == parseFloat( value ) ) )
+									|| ( typeof item == "string" && item == value ) )
+								{
+									return done( {
+										redundancy: 0,
+										searchValue: item
+									} );
+								}
+								done( );
+							},
+							function( result ){
+								callback( result );
+							} );
+					};
+
+					//: Aggregate the values so that it all becomes ranges.
+					var indexes = clonedSearch.indexrange || [ clonedSearch.index ];
+					var values = clonedSearch.valuerange || [ clonedSearch.value ];
+
+
+					if( !indexes.length || !values.length ){
+						return callback( Error.construct( {
+							error: "indexes or values are empty"
+						} ) );
+					}
+
+					_.async.map( arrayKeys,
+						function( arrayKey, cacheLocation ){
+
+							if( arrayKeys.lastIndexOf( arrayKey ) > level && level !== 0 ){
+								return cacheLocation( null, null );
 							}
-							cacheLocation( );
-						}
-					},
-					function( error, locations ){
-						//: Splice all nulls
-						for( var i = 0; i < locations.length; i++ ){
-							if( !locations[ i ] ){
-								locations.splice( i--, 1 );
+							
+							var isNumberKey;
+							var isNumberIndex;
+							var query;
+							for( var i in indexes ){
+								isNumberKey = parseInt( arrayKey.split( "." )[ 0 ], 10 );
+								isNumberIndex = parseInt( indexes[ i ], 10 );
+								if( isNumberKey == isNumberIndex
+									|| !!( arrayKey.match( indexes[ i ] ) || [] ).length
+									|| !!~arrayKey.indexOf( indexes[ i ] )
+									|| indexes[ i ] == arrayKey )
+								{
+									config.filter( entityLevels[ arrayKey ], values,
+										function( filterResult ){
+											if( filterResult.searchValue == "isExists" ){
+												query = "isExists:" + arrayKey;
+												//: For handling key existence.
+												return cacheLocation( null, {
+													location: arrayKey,
+													query: query,
+													queryID: hashIdentity( query ),
+													isExists: true,
+													redundancy: filterResult.redundancy
+												} );
+											}
+											query = indexes[ i ] + ":" + filterResult.searchValue;
+											cacheLocation( null, {
+												location: arrayKey,
+												query: query,
+												queryID: hashIdentity( query ),
+												redundancy: filterResult.redundancy,
+												matches: filterResult.matches,
+												matchCount: filterResult.matchCount
+											} );
+										} );
+									return;
+								}
+								cacheLocation( );
 							}
-						}
-						/*:
-							Results may contain redundant locations,
+						},
+						function( error, locations ){
+							//: Splice all nulls
+							for( var i = 0; i < locations.length; i++ ){
+								if( !locations[ i ] ){
+									locations.splice( i--, 1 );
+								}
+							}
+							/*:
+								Results may contain redundant locations,
 								filter and normalized.
-							If locations match at different indexes,
+								If locations match at different indexes,
 								and the query id matches also,
 								splice the last and increments the redundancy.
-						*/
-						callback( !!normalizedLocations( locations ).length || error,
-							( ( !error )? locations : null ) );
-					} );
+							*/
+							callback( !!config.normalizedLocations( locations ).length, locations );
+						} );
 				}else{
+					//: If the search is string or number.
 					_.async.map( arrayKeys,
-					function( arrayKey, cacheLocation ){
-						//: Are they of the same type?
-						if( typeof arrayLevels[ arrayKey ] == typeof search
-							|| ( arrayLevels[ arrayKey ] + "" ) == ( search + "" )
-							|| parseFloat( arrayLevels[ arrayKey ] ) == parseFloat( search ) )
-						{
-							return cacheLocation( null, {
-								location: arrayKey,
-								queryID: hashIdentity( search.toString( ) ),
-								query: search,
-								redundancy: 0
-							} );
-						}
-						//: They don't match at all.
-						cacheLocation( null, null );
-					},
-					function( error, locations ){
-						//: Splice all nulls
-						for( var i = 0; i < locations.length; i++ ){
-							if( !locations[ i ] ){
-								locations.splice( i--, 1 );
+						function( arrayKey, cacheLocation ){
+							//: Are they of the same type?
+							if( typeof entityLevels[ arrayKey ] == typeof clonedSearch
+								|| ( entityLevels[ arrayKey ] + "" ) == ( clonedSearch + "" )
+								|| parseFloat( entityLevels[ arrayKey ] ) == parseFloat( clonedSearch ) )
+							{
+								return cacheLocation( null, {
+									location: arrayKey,
+									queryID: hashIdentity( clonedSearch.toString( ) ),
+									query: clonedSearch,
+									redundancy: 0
+								} );
 							}
-						}
-						callback( !!normalizedLocations( locations ).length || error,
-							( ( !error )? locations : null ) );
-					} );
+							//: They don't match at all.
+							cacheLocation( null, null );
+						},
+						function( error, locations ){
+							//: Splice all nulls
+							for( var i = 0; i < locations.length; i++ ){
+								if( !locations[ i ] ){
+									locations.splice( i--, 1 );
+								}
+							}
+							callback( !!config.normalizedLocations( locations ).length, locations );
+						} );
 				}
-			} )( );
-		} )( );
-	}else if( typeof entity == "object" ){
-		cloneEntity( entity,
-		function( cloned ){
-			constructLevels( cloned, true,
-			function( levels ){
-				//var indexrange;
-				//var valuerange;
-				if( search instanceof Array ){
-
-				}
-			} )( );
-		} )( );
-	}else{
-
+			}else if( typeof clonedEntity == "object" ){
+				//: Follow the rules for entities that are objects.
+			}else{
+				
+			}
+		} );
 	}
 }
+
 /*var x = {
 	samplea: "a",
 	samplec:[ {a:1,b:1},{a:1,b:1},{a:9,b:8},{a:4,b:2}],
@@ -2066,9 +2683,16 @@ function objectify( object, callback ){
 console.log( "Run successful" );
 
 
+//:	================================================================================================
 
+/*:
+	OCIS Object Property Convention
 
+	@ prefix denotes OCIS native keywords.
 
+	_ prefix denotes private membership.
+
+*/
 
 
 
@@ -2079,8 +2703,75 @@ console.log( "Run successful" );
 
 
 //:	================================================================================================
+
+function verifyNativeInterfaceConfiguration( configuration, callback ){
+	try{
+		return ( function( config ){
+
+			config = config || {};
+			configuration = config.configuration || callback;
+			callback = config.callback || callback;
+
+			config.options = config.options || {};
+			config.overrides = config.overrides || {};
+			config.rules = config.rules || {
+				
+			};
+
+		} )
+	}catch( error ){
+
+	}
+}
+
+function configureInterface( meta, configuration, callback ){
+	try{
+		return ( function( config ){
+
+			config = config || {};
+			meta = config.meta || meta; 
+			configuration = config.configuration || configuration;
+			callback = config.callback || callback;
+
+			//: Meta should be an interface format.
+			if( !( meta instanceof Interface ) ){
+
+			}
+
+			//: 
+
+
+		} );
+	}catch( error ){
+
+	}
+}
+
 function Interface( configuration ){
 	/*:
+		Note that interface should be called meta in coding terms.
+
+		The configuration object contains the interface native settings
+			defined by the @setting property.
+		
+		Settings include the default javascript settings for enforcing
+			strictness on an object.
+
+		The following are supported settings
+			{
+				seal: boolean
+				freeze: boolean
+				extensible: boolean
+			}
+
+		By default, seal and freeze is true.
+
+		The setting is optional. This is only used to make the interface
+			as strict as possible.
+
+		@setting tells any construct methods to trigger native methods
+			that will emulate these settings.
+
 		Interface format convention
 		
 		The interface is an object stating the meta types and configuration of the parameter.
@@ -2115,7 +2806,10 @@ function Interface( configuration ){
 			[*] Date
 		
 			Subtypes are special types appended to types or class.
-				When the type or class has a subtype it must be in this format
+		
+			A subtype can also be a class. 
+
+			When the type or class has a subtype it must be in this format
 			
 			This configuration states that the date can be by default Date or 
 				a date in string format and should be converted to Date type
@@ -2175,9 +2869,16 @@ function Interface( configuration ){
 			Interface has support for generics, they are object of general
 				types but can contain several types either defined before
 				or during runtime.
+
 			A general type can be a single child or parent type or
 				can have multiple child or parent types.
 				It must also support types declared at runtime and wildcards.
+
+			Note that generics in interface is different in any other language
+				specific generic implementations. Generics here is used
+				on shallow portions. We cannot define to include
+				types with complex ranges or bounds.
+				TODO: This is for improvements.
 				
 				Single generic type:
 				{
@@ -2206,7 +2907,11 @@ function Interface( configuration ){
 				}
 				This configuration states that, ThisClass can have a
 					type T and this is unknown at compile time.
-				
+				Note that T will become a named class because of this.
+				Note also that T is a localize named class. Therefore,
+					T of other local scopes may not be the same with
+					this T.
+
 				{
 					"myobject":"T?"
 				}
@@ -2218,6 +2923,12 @@ function Interface( configuration ){
 				}
 				This configuration states that, ThisClass can have
 					different types and is unknown at compile time.
+
+				{
+					"myobject":"*"
+				}
+				This configuration states that, myobject is applicable
+					for any type.
 			
 			
 			Settings:
@@ -2228,6 +2939,14 @@ function Interface( configuration ){
 				They are extremely localized configuration.
 			All settings format are denoted by the prefix ":" colon.	
 			
+			Note that the settings comes after a type. Settings cannot be
+				defined without a type. Since settings are localize configuration
+				defined outside the local scope it must be supported with a type.
+				Mismatched type and settings may result to invalid data processing.
+
+			Setting may include a namespace. Settings bounded by namespace
+				are sub localized settings that is only usable on localize
+				conditions.
 			
 			
 			The configuration parameter composed of the basic
@@ -2286,6 +3005,120 @@ function Interface( configuration ){
 	//: The intermediate format interface is finished.
 	
 	
+}
+
+function isInterface( meta, callback ){
+	try{
+
+		//: Second level verification.
+		//: Certain definitions are allowed.
+		//: Standard classes are checked. As well as standard types.
+		var verifyMetaDefinition = function verifyMetaDefinition( meta, strictVerifier, callback ){
+
+		};
+
+		//: So that we can also verify inner interfaces.
+		var verifyInterface = function verifyInterface( meta, verifier, callback ){
+			
+			if( meta[ "@isVerifiedBasicInterface" ] ){
+				return true;
+			}
+
+			_.async.forEach( Object.keys[ meta ],
+				function( key, verifyDone ){
+
+					//: If the meta is an object.
+					if( isRealObject( meta[ key ] ) ){
+						verifyInterface( meta[ key ], verifier, 
+							function( result ){
+								if( result === true ){
+									return verifyDone( );
+								}
+
+								return verifyDone( result );
+							} );
+						return;
+					}
+
+					//: Verify the meta first.
+					if( !( /^((\w+)(([-:|?;])(\w+|\w|\*)(\?)?)+)|(\w\?)|(\*)|(\w+)$/g )
+						.test( meta[ key ] ) )
+					{
+						return verifyDone( false );
+					}
+
+					//: Then verify the key.
+					if( !( /^((\w+([:;.]\w+)*)|(\w+))$/g ).test( key ) ){
+						return verifyDone( false );
+					}
+
+					//: This is for custom verifier.
+					if( !verifier( meta, key ) ){
+						return verifyDone( false );
+					}
+
+					verifyDone( );	
+				},
+				function( result ){
+					
+					if( result instanceof Error ){
+						return callback( result );
+					}
+
+					if( !result ){
+						return callback( result );
+					}
+
+					return callback( true );
+				} );
+		};
+
+		return ( function( config ){
+			meta = config.meta || meta;
+			callback = config.callback || callback;
+
+			/*:
+				We only need a single level interface.
+				Though we need to check if the interface is single leveled.
+				Check also if the interface has @singleLeveled
+				
+				Though this function will not mark if it is single leveled
+					because this is not the function's purpose.
+
+				Also, we provide flexibility to the interface.
+				Single leveled interfaces provides easy lookup.
+
+				Multi-leveled interfaces provides structure.
+
+				So this is a tradeoff between speed and memory.
+			*/
+			if( !meta[ "@singleLeveled" ] ){
+				constructLevels( meta, true,
+					function( metaLevels ){
+						verifyInterface( metaLevels, config.verifier,
+							function( result ){
+								if( result ){
+									meta[ "@isVerifiedBasicInterface" ] = true;
+									annotateObject( meta, "@isVerifiedBasicInterface", true )
+								}
+								callback( result );
+							} );
+					} )( );
+				return;
+			}
+
+			verifyInterface( meta, config.verifier,
+				function( result ){
+					if( result ){
+						meta[ "@isVerifiedBasicInterface" ] = true;
+					}
+					callback( result );
+				} );
+		} );
+   
+	}catch( error ){
+		throw Error.construct( error );
+	}
 }
 
 Interface.isInterface = function( meta, callback ){
@@ -2475,6 +3308,9 @@ Object.prototype.implode = function( ){
 	
 };
 
+Object.prototype.link = function(){
+	
+};
 //:	================================================================================================
 
 //:	================================================================================================
