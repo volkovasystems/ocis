@@ -17,6 +17,7 @@
 		"socket.io":"",
 		"ntwitter":"",
 		"sockjs":"",
-		"optimist":""
+		"optimist":"",
+		"esprima":""
 	}
 }

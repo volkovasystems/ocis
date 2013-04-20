@@ -19,12 +19,81 @@
 //	@require-start:
 var _ = {
 	uuid: require( "node-uuid" ),
+	//esprima: require( "esprima" ),
 	async: require( "async" ),
 	fs: require( "fs" ),
 	crypto: require( "crypto" ),
 	util: require( "util" )
 };
 //	@require-end:true
+//:	================================================================================================
+
+//:	================================================================================================
+
+/*:
+	Constants will be treated as objects.
+	ConstantObject will be the type of constants.
+
+	The toString is overriden providing proper
+		constant return upon equating to the constant object.
+
+	Initial constant format:
+		<value>:<type>:<subtypeof>	
+*/
+var constants = {
+	TYPE_OBJECT: "object:native:type",
+	TYPE_FUNCTION: "function:native:type",
+	TYPE_NUMBER: "number:native:type",
+	TYPE_BOOLEAN: "boolean:native:type",
+	TYPE_STRING: "string:native:type",
+	TYPE_UNDEFINED: "undefined:native:type",
+	TYPE_NULL: "null:object:type",
+	TYPE_ARRAY: "Array:object:type",
+	TYPE_INFINITY: "Infinity:number:type",
+	TYPE_NAN: "NaN:number:type",
+	TYPE_ERROR: "Error:object:type",
+	TYPE_REGEX: "RegExp:object:type",
+	TYPE_DATE: "Date:object:type",
+	TYPE_JSON: "JSON:ocis:type",
+	TYPE_PARAMETER: "Parameter:ocis:type",
+	TYPE_PROCESSOR: "Processor:ocis:type",
+	TYPE_FUNCTIONAL_OBJECT: "FunctionalObject:ocis:type",
+	TYPE_STORAGE_OBJECT: "StorageObject:ocis:type",
+	TYPE_CONSTANT_OBJECT: "ConstantPbject:ocis:type",
+	TYPE_INTERFACE: "Interface:ocis:type",
+	TYPE_FLOW: "Flow:ocis:type",
+	TYPE_EVENT: "Event:ocis:type",
+	TYPE_BINDING: "Binding:ocis:type",
+	TYPE_DARRAY: "DArray:ocis:type",
+	POST_PROCESSOR: "post-processor:Processor",
+	PRE_PROCESSOR: "pre-processor:Processor"
+};
+_.constants = constants;
+
+
+function injectConstant( constant, value ){
+
+}
+
+function rejectConstant( constant ){
+
+}
+
+function constructConstant( constant, value ){
+
+}
+
+function editConstant( constant, value, permission ){
+
+}
+
+function reformatNativeConstant( constant ){
+	constant = constant.split( ":" );
+}
+
+function reformatNativeConstants( ){
+
+}
 //:	================================================================================================
 
 //:	================================================================================================
@@ -63,19 +132,35 @@ function isRealString( string ){
 
 //:	================================================================================================
 function isStorageObject( object ){
-	return isRealObject( object )
-		|| isRealArray( object );
+	try{
+		return isRealObject( object ) || isRealArray( object );	
+	}catch( error ){
+		try{
+			throw Error.construct( error );
+		}finally{
+			return false;
+		}
+    }
 }
 //:	================================================================================================
 
 //:	================================================================================================
 function isFunctionalObject( object ){
-	//: Functional objects contains interface marker as properties.
+
+    //: Functional objects contains interface marker as properties.
 	//: These are functions with "@interface:property" annotation
 	//: Also test for this optional annotation "@isFunctionalObject"
-	return isRealFunction( object ) 
-		&& !isRealEmptyObject( object[ "@interface:property" ] )
-		&& isRealTrue( object[ "@isFunctionalObject" ] );
+	try{
+		return isRealFunction( object ) 
+			&& !isRealEmptyObject( object[ "@interface:property" ] )
+			&& isRealTrue( object[ "@isFunctionalObject" ] );	
+	}catch( error ){
+		try{
+			throw Error.construct( error );
+		}finally{
+			return false;
+		}
+	}
 }
 //:	================================================================================================
 
@@ -93,7 +178,15 @@ function isRealNull( entity ){
 
 //:	================================================================================================
 function isRealObject( object ){
-	return ( typeof object == "object" && !isRealNull( object ) );
+	try{
+		return ( typeof object == "object" && !isRealNull( object ) );	
+	}catch( error ){
+		try{
+			throw Error.construct( error );
+		}finally{
+			return false;
+		}
+	}
 }
 //:	================================================================================================
 
@@ -134,36 +227,98 @@ function isRealFalse( status ){
 //:	================================================================================================
 
 //:	================================================================================================
+function isRealEmptyString( string ){
+	return isRealString( string ) && isRealEmpty( string );
+}
+//:	================================================================================================
+
+//:	================================================================================================
+function isRealZero( zero ){
+	return zero === 0;
+}
+//:	================================================================================================
+
+//:	================================================================================================
 function isRealEmptyObject( object ){
-	return isRealObject( object ) 
-		&& isRealEmpty( Object.keys( object ) )
-		&& ( /^\{\s*\}$/g ).test( JSON.stringify( object ) );
+	try{
+		return isRealObject( object ) 
+			&& isRealEmpty( Object.keys( object ) )
+			&& ( /^\{\s*\}$/g ).test( JSON.stringify( object ) );	
+	}catch( error ){
+		try{
+			throw Error.construct( error );
+		}finally{
+			return false;
+		}
+	}
 }
 //:	================================================================================================
 
 //:	================================================================================================
 function isRealEmptyArray( array ){
-	return isRealArray( array )
-		&& isRealEmpty( array.length );
-		&& ( /^\[\s*\]$/g ).test( JSON.stringify( array ) );
+	try{
+		return isRealArray( array )
+			&& isRealEmpty( array.length );
+			&& ( /^\[\s*\]$/g ).test( JSON.stringify( array ) );	
+	}catch( error ){
+		try{
+			throw Error.construct( error );
+		}finally{
+			return false;
+		}
+	}
 }
 //:	================================================================================================
 
 //:	================================================================================================
 function isParameterExisting( parameter ){
-	return !isRealUndefined( parameter );
+	try{
+		return !isRealUndefined( parameter );	
+	}catch( error ){
+		try{
+			throw Error.construct( error );
+		}finally{
+			return false;
+		}
+	}
 }
 //:	================================================================================================
 
 //:	================================================================================================
 function isStrictObject( object ){
-
+	try{
+		return isRealObject( object ) && object.constructor.name != "Object";	
+	}catch( error ){
+		try{
+			throw Error.construct( error );
+		}finally{
+			return false;
+		}
+	}
 }
 //:	================================================================================================
-
+/*
+	try{
+		
+	}catch( error ){
+		try{
+			throw Error.construct( error );
+		}finally{
+			return false;
+		}
+	}
+*/
 //:	================================================================================================
 function isStrictJSON( object ){
-
+	try{
+		return isRealObject( object ) && object.constructor.name == "Object"; 
+	}catch( error ){
+		try{
+			throw Error.construct( error );
+		}finally{
+			return false;
+		}
+	}
 }
 //:	================================================================================================
 
@@ -174,6 +329,7 @@ function isStrictJSON( object ){
 function isTruthy( value ){
 	return ( value !== false
 		&& !isRealEmpty( value )
+		&& !isRealInfinity( value )
 		&& !isRealNaN( value )
 		&& !isRealNull( value )
 		&& !isRealUndefined( value ) );
@@ -191,7 +347,7 @@ function isClassByConvention( blueprint ){
 			that classes should start with a capital letter.
 
 		Implementation specific to OCIS will mark the 
-			class as "@isClassByConvention".
+			class as "@isConvenedClass".
 	*/
 
 	//: Try doing this so that we can mark the class right away.
@@ -295,6 +451,19 @@ function unlockNativeSetting( object, key ){
 //:	================================================================================================
 
 //:	================================================================================================
+function has( ){
+	/*:
+		This function will be used to check if the object has a property specified.
+
+		It will return true if it has and override the valueOf() of the result to
+			the value of the property.
+
+		It will return a Boolean object with overrided valueOf method.
+	*/
+}
+//:	================================================================================================
+
+//:	================================================================================================
 /*:
 	Annotating object appends a special property "@annotated"
 	We have a general rule that if an object is annotated,
@@ -342,30 +511,138 @@ function markAnnotated( object ){
 
 //:	================================================================================================
 function constructFunction( procedure, name ){
+	/*:
+		This constructs a raw function.
+		Anything new appended to the procedures will be discarded.
+
+		TODO: Provide re-attachments of stateful procedures.
+	*/
+
+	var reformatProcessor = function reformatProcessor( processor, type ){
+		if( !~[ "pre-processor", "post-processor" ].indexOf( type ) ){
+			throw Error.construct( { error: "invalid processor type" } );
+		}
+
+		if( isRealFunction( processor ) ){
+			if( isRealEmptyString( processor.name ) ){
+				throw Error.construct( { error: type + " has no name" } );
+			}
+
+
+
+			processor = processor.toString( );
+			var name = processor.match( /\b(?!function\s*)[A-Za-z]\w+/ );
+			processor = "var " + name + " = " + processor + ";\n";
+			//: What if the toString is overriden? 
+			//: We have to make a turn around solution regarding this scenario.
+		}else if( isStrictJSON( processor )
+			|| ( var isArray = isRealArray( processor ) ) )
+		{
+			var functions = "";
+			for( var method in processor ){
+				if( isRealEmptyString( processor[ method ].name ) ){
+					if( !isArray ){
+						functions += "var " + method + " = " 
+							+ processor[ method ].toString( )
+								.replace( "function", "function " + method ) + ";\n";
+					}else{
+						//: If the function is anonymous and it is contained inside
+						//: an array then it is erroneous.
+						throw Error.construct( { error: type + " has no name" } );
+					}
+				}else{
+					functions += "var " + method + " = " + processor[ method ] + ";\n";	
+				}
+			}
+			processor = functions;
+		}
+	};
+
 	var constructFunctionWithPreProcessor = 
 		function constructFunctionWithPreProcessor( preFunction ){
+			/*: 
+				Prefunctions should be passed not as string but in real types.
+				Prefunctions can be named or not but we need to transform them into
+					named functions.
 
+				If the passed prefunction is a function then it is single.
+				If the passed prefunction is an object then it is compose of
+					several sub prefunctions. Take note that, ordering in this context
+					is not really important. These functions are not necessarily named.
+				If the passed prefunction is an array it should be checked
+					if all of these functions are named. In this context,
+					order is being observed.
+			*/
+			if( isRealFunction( preFunction ) ){
+				if( isRealEmptyString( preFunction.name ) ){
+					throw Error.construct( { error: "pre-function has no name" } );
+				}
+				preFunction = preFunction.toString( );
+				var name = preFunction.match( /\b(?!function\s*)[A-Za-z]\w+/ );
+				preFunction = "var " + name + " = " + preFunction + ";\n";
+				//: What if the toString is overriden? 
+				//: We have to make a turn around solution regarding this scenario.
+			}else if( isStrictJSON( preFunction )
+				|| ( var isArray = isRealArray( preFunction ) ) )
+			{
+				var functions = "";
+				for( var method in preFunction ){
+					if( isRealEmptyString( preFunction[ method ].name ) ){
+						if( !isArray ){
+
+							functions += "var " + method + " = " 
+								+ preFunction[ method ].toString( )
+									.replace( "function", "function " + method ) + ";\n";
+						}else{
+							//: If the function is anonymous and it is contained inside
+							//: an array then it is erroneous.
+							throw Error.construct( { error: "pre-function has no name" } );
+						}
+					}else{
+						functions += "var " + method + " = " + preFunction[ method ] + ";\n";	
+					}
+				}
+				preFunction = functions;
+			}
+			return constructDoubleReturnFunction( ).replace( "//@preProcessor", preFunction );
 		};
 
 	var constructFunctionWithPrePostProcessor =
 		function constructFunctionWithPrePostProcessor( preFunction, postFunction ){
+			/*:
+				There are two kinds of processor here,
+					1. Helper processors
+						These are the processors that do not execute directly.
+						They are being called when needed.
+					2. Linked processors
+						These are the processors that follows certain execution.
+						They are always called upon main procedure execution.
+				The construct function on double return will construct
+					helper pre processors and linked post processors.
 
+			*/
+			constructFunctionWithPreProcessor( preFunction )
+				.replace(  )
 		};
 
-	var constructNormalFunction = function constructNormalFunction( ){
-		return constructBaseFunction( ).replace( "@normalFunction", 
+	var constructNormalFunction = function constructNormalFunction( procedure ){
+		return constructBaseFunction( ).replace( "//@normalFunction", 
 			"function" + ( isParameterExisting( name )? ( " " + name ) : "" ) + "( ){"
-				+ "		procedure.apply( this, arguments );"
+				+ ( isParameterExisting( procedure )? procedure
+					: "procedure.apply( this, arguments );" )
 				+ "}" );
 	};
 
 	var constructBaseFunction = function constructBaseFunction( ){
-		return "function( procedure ){ @normalFunction }";
+		return "function( procedure ){ //@normalFunction\n }";
 	};
 
 	var constructDoubleReturnFunction = 
 		function constructDoubleReturnFunction( ){
-
+			return constructNormalFunction( "//@preProcessor\n"
+				+ "try{ return ( function( config ){ //@mainProcedure\n } ); }"
+				+ "catch( error ){ throw Error.construct( error ); }"
+				+ "finally{ @postProcessor\n }" );
 		};
 	try{
 		return ( function( config ){
