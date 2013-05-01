@@ -59,7 +59,7 @@ var constants = {
 	TYPE_PROCESSOR: "Processor:ocis:type",
 	TYPE_FUNCTIONAL_OBJECT: "FunctionalObject:ocis:type",
 	TYPE_STORAGE_OBJECT: "StorageObject:ocis:type",
-	TYPE_CONSTANT_OBJECT: "ConstantPbject:ocis:type",
+	TYPE_CONSTANT_OBJECT: "ConstantObject:ocis:type",
 	TYPE_INTERFACE: "Interface:ocis:type",
 	TYPE_FLOW: "Flow:ocis:type",
 	TYPE_EVENT: "Event:ocis:type",
@@ -112,6 +112,133 @@ function reformatNativeConstants( ){
 	Strict types are types that focuses on strict correspondence.
 		For example we have objects like JSON and object not defined as JSON.
 		We have to segregate those types so that we know what we are really dealing with.
+*/
+/*:
+	OCIS Type Classification
+
+	[*] Types are classified according to level.
+	[*] Types are classified according to usage.
+	[*] Types are classified according to static definition.
+
+	In heirarchical classification of types, they are arrange with highest
+		priority to static definition classification followed by usage and level.
+
+	There is a thin line between usage and static definition.
+		But we will try to segregate this ambiguity through the sub-classifications; 
+		static usage and instance usage.
+
+	Static usage is a static definition classification defined by typeof.
+	Instance usage is a static definition and a usage classification defined through instanceof.
+
+	Note that static definition are types defined by the ECMAScript specification.
+	OCIS will not support non standard types. Though it will still be classified as usage types.
+
+	Enumeration of Static Definition Types
+
+	Static Usage 			Meta
+	[1] object 				object:static|usage:type
+	[2] function 			function:static|usage:type
+	[3] number 				number:static|usage:type
+	[4] string 				string:static|usage:type
+	[5] undefined 			undefined:static|usage:type
+	[6] boolean 			boolean:static|usage:type
+
+		Subtypes of Static Definition Types 		Meta
+		[1] null:object 							null:object:type
+		[2] NaN:number 								NaN:number:type
+		[3] Infinity:number 						Infinity:number:type
+
+	Instance Usage 			Meta
+	[1] Object 				Object:usage|static:type
+	[2] Function 			Function:usage|static:type
+	[3] Number 				Number:usage|static:type
+	[4] String 				String:usage|static:type
+	[5] Boolean 			Boolean:usage|static:type
+	[6] Array 				Array:usage|static:type
+	[7] RegExp 				RegExp:usage|static:type
+	[8] Date 				Date:usage|static:type
+	[9] Error 				Error:usage|static:type
+
+		Exception to Instance Usage Types
+		[1] JSON
+		[2] Math
+
+	*Note that all instance usage are object type static usage.
+
+	Exceptions to instance usage types will be classified under usage types.
+
+	Usage types are types through instanceof. They are classes defined outside
+		ECMAScript specifications and are used accordingly to their purpose.
+
+	They can be instantiated or used as utility providing set of functions to be reused.
+
+	By strict definition, usage types should and always be instances.
+
+	Usage types used as utilities will be classified furthermore according to their level
+		of usage.
+
+	So for strict definition of level types, they are just types classified by level of usage.
+
+	Most third party libraries will provide classes so this will be placed under usage types.
+
+	Enumeration of Level Types 			Meta
+	[1] Native Level 					native:level:type
+	[2] JavaScript Level 				js:level:type
+	[3] Third Party Level 				x:level:type
+	[4] OCIS Level 						ocis:level:type
+
+		OCIS Level Types 				Meta
+		[1] Parameter 					Parameter:ocis:type
+		[2] Processor 					Processor:ocis:type
+		[3] Flow 						Flow:ocis:type
+		[4] Event 						Event:ocis:type
+		[5] DArray 						DArray:ocis:type
+		[6] Binding 					Binding:ocis:type
+		[7] FunctionalObject 			FunctionalObject:ocis:type
+		[8] StorageObject 				StorageObject:ocis:type
+		[9] ConstantObject 				ConstantObject:ocis:type
+
+
+		JavaScript Level Types Overriden For OCIS Level Types
+										Meta
+		[1] Function 					Function:ocis|object:type				
+		[2] String 						String:ocis|object:type
+		[3] Object 						Object:ocis|object:type
+		[4] Error 						Error:ocis|object:type
+		[5] Number 						Number:ocis|object:type
+		[6] Date 						Date:ocis|object:type
+		[7] RegExp 						RegExp:ocis|object:type
+		[8] Array 						Array:ocis|object:type
+		[9] Math 						Math:ocis|object:type
+		[10] JSON 						JSON:ocis|object:type
+
+	Here's the real question: "Who will handle the type?"
+
+	No one. We just want to know what is the type PROPERLY so that we can
+		work it out PROPERLY also.
+
+	Meta Definition of Types
+		Remember that types are classified. These classifications are the following:
+
+		[1] static
+		[2] usage
+		[3] native - static
+		[4] js - static|usage
+		[5] x - usage
+		[6] ocis - usage
+
+		Though there are only 3 hierarchical categories of classification of types,
+			these meta segregates properly these 3 classifications.
+
+		Note that these meta will be the standard meta definition of types for
+			the OCIS architecture framework.
+
+		Note on "js" meta. The "js" meta is an alias to static|usage or usage|static.
+			It is a non verbose meta if you just want to specify that the type
+			classification is ECMAScript standard.
+
+		Note on "ocis|object" meta. This can be simplified into just using
+			"ocis" as the meta.
 */
 function isRealNaN( number ){
 	return ( number !== number && isNaN( number ) );
@@ -1555,6 +1682,63 @@ function verifyParameters( interface, parameters, callback ){
 //:	================================================================================================
 
 //:	================================================================================================
+function classifyType( value, verbose ){
+
+}
+//:	================================================================================================
+
+//:	================================================================================================
+/*:
+	OCIS Architecture
+
+		(I will try to put little things here so that I will remember the very purpose of this
+			architecture. I believe this architecture is great, in a sense that it can
+			adapt to every aspect of developing distributed applications.)
+
+		The architecture consist primarily of the core engine FunctionJS (function.js)
+
+		FunctionJS reimplements object oriented architecture. I believe that objects are more
+			than it is. It should do something. And that "do something" is intrisically defined.
+
+		When you define a "button", it is not just a button. The button understands its purpose.
+
+		FunctionJS provides meta definitions. The way these meta definitions are processed,
+			FunctionJS handles them. It is like "I create this button" and boom! It "does
+			everything"!
+
+		To be able to code components flawlessly and seamslessly is one of the goal of FunctionJS
+
+		It is like, just define the button, and what it does (event based) and we will provide
+			you the entire capabilities of how you will integrate this button to your application
+			without the need to worry about dependencies. BECAUSE THE FUNCTIONS SIMPLY ADAPTS WHAT
+			IT NEEDS TO ADAPT.
+
+		This architecture redefines everything. 
+
+		I call this Functional Object Oriented Architecture.
+
+		You don't need to do lots of codes to integrate it, (through binding, just define 
+			the connections and the function will adapt to it). You don't need to worry what 
+			the functions will accept because the functions understands its parameters (through
+			interfacing, the function will always have parameter checks adapts to what it is given
+			and do what it needs to do based on what is given).
+
+		One of the key strengths of this architecture is the ability of the function to
+			polymorph based on what is feed into it. 
+
+		I tried to make this architecture as realistic as possible. By basing the conceptual
+			design of every components in this architecture to the natural flow of the universe,
+			we can create an application that is less maintainable, robust and adaptive.
+
+
+*/
+/*:
+	We try to define the content of the value. Though this is only a shallow definition,
+		this will given the developers insight of what the data looks like.
+
+	Let's try to define the format clearly:
+
+*/
 function inspectType( value, verbose ){
 	try{
 		//: Turn the verbosity off, true by default
@@ -1639,9 +1823,10 @@ function inspectType( value, verbose ){
 			+ ( isRealNull( value )? ":null"
 				: ( isRealUndefined( value )? ":undefined"
 				: ( isRealNaN( value )? ":NaN"
+				: ( isRealInfinity( value )? ":Infinity"
 				: ( isRealEmpty( value )? ":empty"
 				: ( ( typeof value == "boolean" )? ""
-				: ":unknown" ) ) ) ) ) );
+				: ":unknown" ) ) ) ) ) ) );
 	}catch( error ){
 		throw Error.construct( error );
 	}
@@ -2004,6 +2189,9 @@ function indexOf( entity, search, origin, index, starting, callback ){
 
 //:	================================================================================================
 /*:
+	Note that all binded functions are asynchronous. I am still thinking of having
+		good support for sequential processing of binded functions.
+
 	The bind function binds two function together thereby subjecting the procedure
 		to any of the following binding procedures or conditions.
 
