@@ -1,0 +1,49 @@
+//: ============================================================================
+					//: Check if invalid search format. Either it is empty or invalid format.
+					/*
+						@errorinfo-start:
+							@errorid: "7d5c788e975ff3c04cce64b0306948c3"
+							@errorid-end:true
+
+							@methodid: "2f4db74fadb70e2a05f1284789aae123"
+							@methodid-end:true
+
+							@title: "Error on Invalid Search Format"
+							@title-end:true
+
+							@info:
+								{
+									description:
+										"Error on invalid object search format query.\n"
+										+ "If the indexes and/or values are empty or unrecognized,"
+										+ "then this will be emitted.\n\n",
+									type: "functional",
+									level: 1
+								}
+							@info-end:true
+						@errorinfo-end:true
+					*/
+					//	@errorcapture-start:
+					if( !indexes.length || !values.length ){
+						/*:
+							Trace path format:
+							<procedure|flow>:<procedure|flow>:<procedure|flow>...
+						*/
+						return callback( {
+							error: {
+								name: "error:containsEntity",
+								input: null,
+								message: "invalid search query format",
+								tracePath:
+									"identify entity as array:"
+								+	"clone entity:"
+								+	"construct levels:"
+								+	"identify search query as search using object search format:"
+								+	"indexes and values is empty due to invalid format:"
+								+	_.util.inspect( search, true ),
+								date: Date.now( )
+							}
+						} );
+					}
+					//	@errorcapture-end:true
+					//: ============================================================================

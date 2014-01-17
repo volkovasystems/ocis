@@ -1,0 +1,92 @@
+
+
+			//: If the last property holds the value.
+			if( config.keys.length == ( config.depth + 1 )
+				&& typeof entity == "object"
+				&& !~currentKey.indexOf( ":" ) )
+			{
+				/*:
+					The property should not be an array.
+				*/
+				entity[ currentKey ] = value;
+				return callback( config.original );
+			}
+
+			//: If there is no entity then initialize
+			if( !entity 
+				&& currentKey.indexOf( "@" ) == 0 
+				&& !~currentKey.indexOf( ":" ) )
+			{
+				try{
+					entity = new eval( currentKey.split( "@" )[ 1 ] )( );
+					config.original = config.original || entity;
+				}catch( error ){
+					return callback( Error.construct( error ) );
+				}
+
+				//: Do we have next keys?
+				if( config.depth < config.keys.length ){
+					config.entity = entity;
+					config.depth++;
+					push( null, null, null,
+						function( entity ){
+							callback( entity );
+						} )( config );
+					return;
+				}
+				return callback( entity );
+			}
+
+			//: If this is an array.
+			if( !!~currentKey.indexOf( ":" ) ){
+
+				function pushArray( array, levels, level, callback ){
+					if( level < levels.length - 1 ){
+						pushArray( array[ levels[ level ] ] || ( array[ levels[ level ] ] = [] ),
+							levels,
+							level++,
+							function( ){
+								callback( );
+							} );
+					}else if( ( config.depth + 1 ) == config.keys.length ){
+						array[ levels[ level ] ] = value;
+						callback( );
+					}else{
+						callback( array, level );
+					}
+				}
+
+				config.levels = currentKey.split( ":" );
+
+				if( config.levels[ 0 ] ){
+					config.entity = entity[ config.levels[ 0 ] ] 
+						|| ( entity[ config.levels[ 0 ] ] = [] );
+					config.level = 1;
+				}else{
+					config.entity = entity[ config.levels[ 1 ] ] 
+						|| ( entity[ config.levels[ 1 ] ] = [] );
+					config.level = 2;
+				}
+
+				pushArray( config.entity, 
+					config.levels, 
+					config.level,
+					function( array, level ){
+						config.depth++
+						if( config.depth < config.keys.length ){
+							currentKey = config.keys[ config.depth ] || "";
+							if( !!~currentKey.indexOf( "@" ) ){
+								config.entity 
+									= array[ config.levels[ level ] ] 
+									= new eval( currentKey.split( "@" )[ 1 ] )( );
+								config.depth++;
+								push( null, null, null,
+									function( entity ){
+										callback( entity );
+									} )( config );	
+								return;
+							}
+						}
+						callback( config.original );
+					} );
+			}
