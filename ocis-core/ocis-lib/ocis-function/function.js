@@ -29,6 +29,12 @@ var _ = {
 //:	================================================================================================
 
 //:	================================================================================================
+var typeMap = {
+	
+}
+//:	================================================================================================
+
+//:	================================================================================================
 
 /*:
 	Constants will be treated as objects.
@@ -39,22 +45,63 @@ var _ = {
 
 	Initial constant format:
 		<value>:<type>:<subtypeof>	
+
+	Employed symbols:
+		":" - "as" symbol
+			- "is a/an" symbol
+			- "is also" symbol
+			- "with" symbol
+			- it is a trans-conversion meta symbol
+
+		"|" - "or" symbol
+			- use for pairing meta of different meaning
+
+		"&" - "and" symbol
+			- higher precedence than "or" symbol
+
+		"::" - "default to" symbol
+			- proceeded by a constant
+			- terminal term
+
+	*Note on root, there is only one root type.
 */
 var constants = {
-	TYPE_OBJECT: "object:native:type",
-	TYPE_FUNCTION: "function:native:type",
-	TYPE_NUMBER: "number:native:type",
-	TYPE_BOOLEAN: "boolean:native:type",
-	TYPE_STRING: "string:native:type",
-	TYPE_UNDEFINED: "undefined:native:type",
-	TYPE_NULL: "null:object:type",
-	TYPE_ARRAY: "Array:object:type",
+	//Core types
+	TYPE_TYPE: "type:root",
+	TYPE_LEVEL: "level",
+
+	TYPE_STATIC: "static",
+	TYPE_USAGE: "usage",
+	
+	TYPE_X: "x:level:type",
+	TYPE_JS: "js:level:type:alias:static|usage&usage|static",
+	TYPE_OCIS: "ocis:level:type:alias:ocis|object",
+	TYPE_NATIVE: "native:level:type:alias:static|usage",
+
+	TYPE_OBJECT_NATIVE: "object:static|usage:type:alias:usage|static",
+	TYPE_FUNCTION_NATIVE: "function:static|usage:type",
+	TYPE_NUMBER_NATIVE: "number:static|usage:type",
+	TYPE_BOOLEAN_NATIVE: "boolean:static|usage:type",
+	TYPE_STRING_NATIVE: "string:static|usage:type",
+	TYPE_UNDEFINED: "undefined:static|usage:type",
+	
 	TYPE_INFINITY: "Infinity:number:type",
 	TYPE_NAN: "NaN:number:type",
-	TYPE_ERROR: "Error:object:type",
-	TYPE_REGEX: "RegExp:object:type",
-	TYPE_DATE: "Date:object:type",
-	TYPE_JSON: "JSON:ocis:type",
+	TYPE_NULL: "null:object:type",
+
+	TYPE_ARRAY: "Array:ocis|object:type",
+	TYPE_ERROR: "Error:ocis|object:type",
+	TYPE_REGEX: "RegExp:ocis|object:type",
+	TYPE_DATE: "Date:ocis|object:type",
+	TYPE_OBJECT: "Object:ocis|object:type",
+	TYPE_FUNCTION: "Function:ocis|object:type",
+	TYPE_NUMBER: "Number:ocis|object:type",
+	TYPE_STRING: "String:ocis|object:type",
+
+	TYPE_JSON: "JSON:ocis|object:type",
+	TYPE_MATH: "Math:ocis|object:type",
+
+	//OCIS types
 	TYPE_PARAMETER: "Parameter:ocis:type",
 	TYPE_PROCESSOR: "Processor:ocis:type",
 	TYPE_FUNCTIONAL_OBJECT: "FunctionalObject:ocis:type",
@@ -65,11 +112,14 @@ var constants = {
 	TYPE_EVENT: "Event:ocis:type",
 	TYPE_BINDING: "Binding:ocis:type",
 	TYPE_DARRAY: "DArray:ocis:type",
+	
+	//Application types
 	POST_PROCESSOR: "post-processor:Processor",
 	PRE_PROCESSOR: "pre-processor:Processor"
 };
 _.constants = constants;
 
+//Fd9y8hy2HQ
 
 function injectConstant( constant, value ){
 
@@ -94,6 +144,32 @@ function reformatNativeConstant( constant ){
 function reformatNativeConstants( ){
 
 }
+
+//:	================================================================================================
+function isClassifiableTypeFormat( type ){
+
+}
+//:	================================================================================================
+
+//:	================================================================================================
+function ConstantObject( type, value ){
+	//: The type format should follow the specification.
+
+}
+//:	================================================================================================
+
+
+
+//:	================================================================================================
+ConstantObject.prototype.valueOf = function valueOf( ){
+
+};
+//:	================================================================================================
+
+//:	================================================================================================
+ConstantObject.prototype.toString = function toString( ){
+
+};
 //:	================================================================================================
 
 //:	================================================================================================
@@ -132,6 +208,19 @@ function reformatNativeConstants( ){
 
 	Note that static definition are types defined by the ECMAScript specification.
 	OCIS will not support non standard types. Though it will still be classified as usage types.
+
+	Type Convergence
+		All types converges to a single meta rule "type"
+		If a type does not converge to this root, then it cannot be classified as type.
+		All values does not converge to type meta rule are values of a specific type.
+
+		*Note: I want to make type as the root of all objects adhering to the philosophy
+			that everything is ruled by classification. Therefore, an object can only
+			be called an object if it has a type of object.
+
+			If we do this OCIS will be a type oriented language application platform.
+			Better understanding of what we are dealing with is the first step to better
+				data manipulation.
 
 	Enumeration of Static Definition Types
 
@@ -222,8 +311,8 @@ function reformatNativeConstants( ){
 
 		[1] static
 		[2] usage
-		[3] native - static
-		[4] js - static|usage
+		[3] native - static|usage
+		[4] js - static|usage or usage|static
 		[5] x - usage
 		[6] ocis - usage
 
@@ -237,8 +326,15 @@ function reformatNativeConstants( ){
 			It is a non verbose meta if you just want to specify that the type
 			classification is ECMAScript standard.
 
+		Note on "native" meta. The "native" meta is an alias to static|usage.
+
+		Note on "object" meta. The "object" meta is an alias to usage|static.
+
 		Note on "ocis|object" meta. This can be simplified into just using
 			"ocis" as the meta.
+
+		Note on paired meta, paired meta will act as one meta and paired meta will always
+			have aliases.
 */
 function isRealNaN( number ){
 	return ( number !== number && isNaN( number ) );
@@ -601,10 +697,10 @@ function annotateObject( object, key, value, fixed ){
 		throw Error.construct( { error: "invalid object parameter" } );
 	}
 	if( typeof key != "string" || !( /^@\w+$/g ).test( key ) ){
-		throw Error.construct( { error: "invalid key parameter" } );
+		throw Error.construct( { error: "invalid annotation key parameter" } );
 	}
 	if( object.hasOwnProperty( key ) ){
-		//: Update the value.
+		//: Update the value. If it is updatable.
 		object[ key ] = value;
 	}else{
 		Object.defineProperty( object, key, {
@@ -620,6 +716,12 @@ function annotateObject( object, key, value, fixed ){
 //:	================================================================================================
 
 //:	================================================================================================
+function isAnnotated( object ){
+	return !!object[ "@annotated" ];
+}
+//:	================================================================================================
+
+//:	================================================================================================
 function markAnnotated( object ){
 	if( !~[ "function", "object" ].indexOf( typeof object ) ){
 		throw Error.construct( { error: "invalid object parameter" } );
@@ -627,12 +729,41 @@ function markAnnotated( object ){
 	if( object.hasOwnProperty( "@annotated" ) ){
 		return;
 	}
-	Object.defineProperty( object, "@annotated", {
-		enumerable: false,
-		configurable: false,
-		writable: false,
-		value: true
-	} );	
+	Object.defineProperty( object, "@annotated", 
+		{
+			enumerable: false,
+			configurable: false,
+			writable: false,
+			value: true
+		} );	
+}
+//:	================================================================================================
+
+//:	================================================================================================
+function hardenObject( object ){
+	/*:
+		Constructing hard objects takes an object type parameter.
+		All enumerable properties will be hardened (constant).
+		This will make the object contains contant properties.
+		This function is designed specifically to only traverse single level
+			properties.
+
+		All hardened objects contains @hardened annotation.
+	*/
+	if( typeof object != "object" ){
+		throw Error.construct( { error: "invalid object type parameter" } );
+	}
+
+	for( var key in object ){
+		Object.defineProperty( object, key,
+			{
+				enumerable: true,
+				configurable: false,
+				writable: false,
+				value: object[ key ]
+			} );
+	}
+	annotateObject( object, "@hardened", true, true );
 }
 //:	================================================================================================
 
@@ -3279,7 +3410,7 @@ function Interface( configuration ){
 			This configuration states that the date can be by default Date or 
 				a date in string format and should be converted to Date type
 			{
-				"date":"Date:string"
+				"date":"Date-string"
 			}
 			
 			
@@ -3288,7 +3419,7 @@ function Interface( configuration ){
 			This configuration states that the date can be a number or a string
 				but should be converted to Date type
 			{
-				"date":"Date:string|number"
+				"date":"Date-string|number"
 			}
 			
 			
@@ -3395,6 +3526,17 @@ function Interface( configuration ){
 				This configuration states that, myobject is applicable
 					for any type.
 			
+
+			Default Values:
+
+			This denoted by a colon (:) and only a single default value can be given.
+
+
+			Linked Parameters:
+
+			This is denoted by a tilde (~) and only second and succeeding
+				parameters can have linked parameters.
+			Linking involves right to left references.
 			
 			Settings:
 			
